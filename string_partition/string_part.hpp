@@ -46,6 +46,16 @@ private:
     const char _data[sizeof ... (index) + 1];
 };
 
+namespace priv {
+    // MSVCPP complains when using "const T&" and passing a template parameter
+    // as an argument
+    template <typename T>
+    constexpr T max(T a, T b)
+    {
+        return a > b ? a : b;
+    }
+}
+
 /**
     Compile time string part. Initializes the data using characters from a given char array,
     using a custom offset. This part can be bigger than a given array - missing characters are
@@ -84,7 +94,7 @@ public:
         return std::string({_data[index] ...});
     }
 private:
-    const char _data[std::max(sizeof ... (index) + 1, Size)] = '\0';
+    const char _data[priv::max(sizeof ... (index) + 1, Size)] = '\0';
 };
 
 namespace priv {

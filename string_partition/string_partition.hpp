@@ -41,15 +41,9 @@ private:
     {
         return string_part::make_filed_part<part_size, start_index, array_size - start_index>(data);
     }
-    /// @return true if this part is too small and needs to be filled to match the @ref part_size, false otherwise.
-    constexpr static bool is_filled()
-    {
-        return start_index + part_size > array_size;
-    }
-
 public:
-    /// final type of this string partition element
-    using type = typename std::conditional<is_filled(), decltype(helper_filled(data_type{})), decltype(helper(data_type{}))>::type;
+    /// final type of this string partition element, checks if the part needs to be filled
+    using type = typename std::conditional<(start_index + part_size > array_size), decltype(helper_filled(data_type{})), decltype(helper(data_type{}))>::type;
 };
 
 /**
@@ -96,22 +90,32 @@ public:
 };
 }
 
+namespace priv {
+template <size_t part_size, size_t array_size_deduced>
+class make_partition_t {
+private:
+    using data_type = const char[array_size_deduced];
+    static constexpr auto array_size = array_size_deduced - 1;
+    static constexpr auto offset = part_size;
+    static constexpr auto part_count = (array_size / part_size) + ((array_size % part_size) ? 1 : 0);
+    using first_part = decltype(string_part::make_part<part_size, 0>(data_type{}));
+    using partition_start = typename type_list::create<first_part>::type;
+public:
+    using type = typename priv::declare_parts<partition_start, part_size, array_size, offset, part_count>::type;
+};
+}
+
 /**
-    Helper method to partition a given char array into parts of equal lengths.
-    This method is meant to be used at compile time - it returns a type list which can be
+    Helper function to partition a given char array into parts of equal lengths.
+    This function is meant to be used at compile time - it returns a type list which can be
     used with a @ref partition_iterator.
 */
 template <size_t part_size, size_t array_size_deduced>
 constexpr auto make_partition(const char (&data)[array_size_deduced])
 {
-    /// todo support smaller data sets (part_size > array_size_deduced)
-    constexpr auto array_size = array_size_deduced - 1;
-    constexpr auto offset = part_size;
-    constexpr auto part_count = (array_size / part_size) + ((array_size % part_size) ? 1 : 0);
-    using first_part = decltype(string_part::make_part<part_size, 0>(data));
-    using partition_start = typename type_list::create<first_part>::type;
-    using final_partition = typename priv::declare_parts<partition_start, part_size, array_size, offset, part_count>::type;
-    return final_partition();
+    (void)data;
+    using type = typename priv::make_partition_t<part_size, array_size_deduced>::type;
+    return type();
 }
 
 }
