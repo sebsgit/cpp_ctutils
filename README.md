@@ -1,2 +1,11 @@
 # cpp_ctutils
-Useful and not useful but cool compile-time utilities for C++
+
+Set of compile time utilities.
+
+## string_partition
+
+Divide a compile time string into parts of equal size. Result is padded with '\0' characters.
+
+## ctml
+
+Compile time math library.  For now only random generators and distributions.
