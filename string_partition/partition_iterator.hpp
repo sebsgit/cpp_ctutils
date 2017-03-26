@@ -26,7 +26,7 @@ public:
         @return the result of the visitor.
     */
     template <typename Args>
-    auto operator()(Args&& arg) const
+    constexpr auto operator()(Args&& arg) const
     {
         using type = typename type_list::at<List, index>::type;
         return Visitor<type, Args>()(arg);
@@ -56,7 +56,7 @@ template <typename List, template<typename Part, typename Args> class Visitor>
 class visit_all<List, Visitor, 0> {
 public:
     template <typename Args>
-    auto operator()(Args&& args) const
+    constexpr auto operator()(Args&& args) const
     {
         return visit_at<List, Visitor, 0>()(args);
     }
@@ -79,7 +79,7 @@ public:
         @param args Argument passed to visitor, the partitioned string.
     */
     template <typename Args>
-    auto operator()(Args&& args) const
+    constexpr auto operator()(Args&& args) const
     {
         visit_all<List, Visitor, index - 1>()(args);
         return visit_at<List, Visitor, index>()(args);
@@ -103,7 +103,7 @@ public:
         @param arg Argument passed to the visitor application operator.
     */
     template <typename Args>
-    auto operator()(Args&& arg) const
+    constexpr auto operator()(Args&& arg) const
     {
         return priv::visit_all<List, Visitor, type_list::count<List>::size - 1>()(arg);
     }

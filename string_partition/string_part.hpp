@@ -37,6 +37,7 @@ public:
         @note This function does not perform any bounds checking.
     */
     constexpr char data(size_t i) const { return this->_data[i]; }
+    static constexpr size_t size() { return sizeof...(index); }
     /// @return this array as std::string object
     std::string to_string() const
     {
@@ -80,7 +81,7 @@ public:
 
     }
     /// @return Size of the underlying data.
-    constexpr size_t size() const { return sizeof(this->_data) / sizeof(this->_data[0]); }
+    static constexpr size_t size() { return priv::max(sizeof ... (index) + 1, Size); }
     /**
         Returns the character at given position.
         @param i Index to query the character from.
