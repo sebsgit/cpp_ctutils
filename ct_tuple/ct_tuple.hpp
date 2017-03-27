@@ -93,4 +93,10 @@ constexpr auto get(const Tuple& t)
     static_assert(index < Tuple::size(), "index out of tuple bounds");
     return priv::getter<Tuple, index>::get(t);
 }
+
+template <typename T>
+constexpr auto make_tuple(T&& t)
+{
+    return ct_tuple<T>(std::forward<T>(t));
+}
 }
