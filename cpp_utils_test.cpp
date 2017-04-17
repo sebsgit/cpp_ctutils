@@ -4,6 +4,7 @@
 #include "string_partition/partition_iterator.hpp"
 #include "string_partition/partition_converter.hpp"
 #include "aes_utils/aes_utils.hpp"
+#include "sha1/sha1_utils.hpp"
 
 #include <iostream>
 #include <typeinfo>
@@ -145,6 +146,36 @@ static void test_aes_utils()
     static_assert(aes_utils::s_box::value(0xc9) == 0xdd, "");
 }
 
+static void test_sha1_utils()
+{
+    constexpr auto ctx = sha1_utils::sha1_create_context("text to sha1");
+    // verify intermediate data in sha1
+    constexpr auto X = sha1_utils::sha1_compute().add_context_round(ctx).add_rotate_round();
+    static_assert(X.x[0] == 1952807028, "0");
+    static_assert(X.x[1] == 544501536, "1");
+    static_assert(X.x[2] == 1936220465, "2");
+    static_assert(X.x[5] == 0, "5");
+    static_assert(X.x[11] == 0, "11");
+    static_assert(X.x[15] == 0, "15");
+    static_assert(X.x[19] == 473195796, "19");
+    static_assert(X.x[20] == 2178006144, "20");
+    static_assert(X.x[21] == 3449914565, "21");
+    static_assert(X.x[55] == 3945288533, "55");
+    static_assert(X.x[56] == 3789232617, "56");
+    static_assert(X.x[57] == 1207579205, "57");
+    static_assert(X.x[77] == 3351878526, "77");
+    static_assert(X.x[78] == 3945703551, "78");
+    static_assert(X.x[79] == 1796382940, "79");
+    // main sha1 computation routine
+    constexpr auto ctx_updated = sha1_utils::sha1_calc(ctx);
+    static_assert(ctx_updated.result[0] == 1921304193, "");
+    static_assert(ctx_updated.result[1] == 2414806865, "");
+    static_assert(ctx_updated.result[2] == 1370285663, "");
+    static_assert(ctx_updated.result[3] == 895243306, "");
+    static_assert(ctx_updated.result[4] == 3663183577, "");
+    //@todo finalization
+}
+
 int main()
 {
     test_type_list();
@@ -152,5 +183,6 @@ int main()
     test_partition();
     test_partition_transform();
     test_aes_utils();
+    test_sha1_utils();
     return 0;
 }
