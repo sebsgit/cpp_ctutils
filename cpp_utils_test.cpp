@@ -146,8 +146,36 @@ static void test_aes_utils()
     static_assert(aes_utils::s_box::value(0xc9) == 0xdd, "");
 }
 
+/**
+    /// @TODO structure the tests somehow, cmake maybe
+*/
+
+static void test_sha1_internal_utils()
+{
+    constexpr auto ctx = sha1_utils::sha1_create_context("abcd");
+    assert(ctx.buff_len == 4);
+    static_assert(ctx.w[0] == 'a', "");
+    static_assert(ctx.w[1] == 'b', "");
+    static_assert(ctx.w[2] == 'c', "");
+    static_assert(ctx.w[3] == 'd', "");
+    static_assert(ctx.w[4] == '\0', "");
+    constexpr auto ctx_copied = sha1_utils::sha1_test_append_some(ctx, "uXYZy", 1, 3);
+    assert(ctx_copied.buff_len == 7);
+    static_assert(ctx_copied.w[0] == 'a', "");
+    static_assert(ctx_copied.w[1] == 'b', "");
+    static_assert(ctx_copied.w[2] == 'c', "");
+    static_assert(ctx_copied.w[3] == 'd', "");
+    static_assert(ctx_copied.w[4] == 'X', "");
+    static_assert(ctx_copied.w[5] == 'Y', "");
+    static_assert(ctx_copied.w[6] == 'Z', "");
+    static_assert(ctx_copied.w[7] == '\0', "");
+    assert(std::string(ctx_copied.w) == "abcdXYZ");
+}
+
 static void test_sha1_utils()
 {
+    test_sha1_internal_utils();
+
     constexpr auto ctx = sha1_utils::sha1_create_context("text to sha1");
     // verify intermediate data in sha1
     constexpr auto X = sha1_utils::sha1_compute().add_context_round(ctx).add_rotate_round();

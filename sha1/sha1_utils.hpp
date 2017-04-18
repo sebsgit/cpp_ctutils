@@ -10,9 +10,33 @@ namespace sha1_utils {
         template <size_t N, size_t ... index>
         constexpr sha1_context(const char (&message)[N], std::index_sequence<index...>)
             :w{ message[index] ... }
-            ,buff_len(N)
+            ,buff_len(N - 1)
         {
 
+        }
+
+        /**
+            Creates new context by appending some data to the existing other context.
+        */
+        template <size_t N, size_t ... index>
+        constexpr sha1_context(const sha1_context& other,
+                               const char (&message)[N],
+                               const size_t array_offset,
+                               const size_t copy_size,
+                               std::index_sequence<index...>)
+            :w{ get_item_helper_(other, message, array_offset, copy_size, index) ... }
+            ,buff_len(other.buff_len + copy_size)
+        {
+        }
+
+        template <size_t N>
+        constexpr static char get_item_helper_(const sha1_context& other,
+                                           const char (&message)[N],
+                                           const size_t array_offset,
+                                           const size_t copy_size,
+                                           const size_t i)
+        {
+            return i < other.buff_len ? other.w[i] : (i - other.buff_len < copy_size ? message[i - other.buff_len + array_offset] : '\0');
         }
 
         template <size_t ... index64>
@@ -32,12 +56,14 @@ namespace sha1_utils {
                                  0x10325476,
                                  0xC3D2E1F0};
         const uint64_t data_len = 0;
-        const uint8_t buff_len = 0;
+        const uint64_t buff_len = 0;
     };
 
     template <size_t N>
     constexpr auto sha1_create_context(const char (&message)[N])
     {
+        ///@TODO allow longer messages
+        static_assert(N < 16, "can't create context with message longer than 16 chars");
         return sha1_context(message, std::make_index_sequence<N>());
     }
 
@@ -218,5 +244,23 @@ namespace sha1_utils {
     {
         return sha1_update(source, sha1_utils::perform_loop<perform_loop_base::sha1_rounds>(source, sha1_utils::sha1_compute().add_context_round(source).add_rotate_round()).calculate()._ctx_update);
     }
+
+    template <size_t N, size_t ... index>
+    constexpr sha1_context sha1_test_append_some_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size, std::index_sequence<index...>)
+    {
+        // enumerate the whole context buffer - 16 elements
+        return sha1_context(context, array, array_offset, copy_size, std::make_index_sequence<16>());
+    }
+
+    /**
+        Appends some data to the existing context.
+    */
+    template <size_t N>
+    constexpr sha1_context sha1_test_append_some(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
+    {
+        return sha1_test_append_some_helper(context, array, array_offset, copy_size, std::make_index_sequence<N>());
+    }
+
+
 
 }
