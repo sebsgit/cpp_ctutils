@@ -5,6 +5,31 @@
 /// @TODO document and cleanup
 namespace sha1_utils {
 
+    class sha1_pad {
+    public:
+        static constexpr unsigned char data[256] = {
+            0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        };
+    };
+
+    class sha1_length_buffer {
+    public:
+        constexpr sha1_length_buffer(const uint64_t buffSize)
+            : lengthBits(buffSize * 8)
+            , data{ (unsigned char)(lengthBits >> 56), (unsigned char)(lengthBits >> 48),
+                    (unsigned char)(lengthBits >> 40), (unsigned char)(lengthBits >> 32),
+                    (unsigned char)(lengthBits >> 24), (unsigned char)(lengthBits >> 16),
+                    (unsigned char)(lengthBits >> 8), (unsigned char)(lengthBits >> 0) }
+        {
+
+        }
+        const int64_t lengthBits = 0;
+        const unsigned char data[8] = {0};
+    };
+
     class sha1_context {
     public:
 
@@ -14,8 +39,20 @@ namespace sha1_utils {
 
         template <size_t N, size_t ... index>
         constexpr sha1_context(const char (&message)[N], std::index_sequence<index...>)
-            :w{ message[index] ... }
+            :w{ (unsigned char)message[index] ... }
+            ,data_len(N - 1)
             ,buff_len(N - 1)
+        {
+
+        }
+
+        template <size_t ... index56>
+        constexpr sha1_context(const sha1_context& other, const sha1_length_buffer& lengthBuffer, std::index_sequence<index56 ...>)
+            :w{other.w[index56] ..., lengthBuffer.data[0], lengthBuffer.data[1], lengthBuffer.data[2],
+                lengthBuffer.data[3], lengthBuffer.data[4], lengthBuffer.data[5], lengthBuffer.data[6], lengthBuffer.data[7] }
+            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
+            ,data_len(other.data_len + 8)
+            ,buff_len(other.buff_len + 8)
         {
 
         }
@@ -23,21 +60,22 @@ namespace sha1_utils {
         /**
             Creates new context by appending some data to the existing other context.
         */
-        template <size_t N, size_t ... index>
+        template <size_t N, size_t ... index, typename Char>
         constexpr sha1_context(const sha1_context& other,
-                               const char (&message)[N],
+                               const Char (&message)[N],
                                const size_t array_offset,
                                const size_t copy_size,
                                std::index_sequence<index...>)
             :w{ get_item_helper_(other, message, array_offset, copy_size, index) ... }
             ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
+            ,data_len(other.data_len + copy_size)
             ,buff_len(other.buff_len + copy_size)
         {
         }
 
-        template <size_t N>
-        constexpr static char get_item_helper_(const sha1_context& other,
-                                           const char (&message)[N],
+        template <size_t N, typename Char>
+        constexpr static unsigned char get_item_helper_(const sha1_context& other,
+                                           const Char (&message)[N],
                                            const size_t array_offset,
                                            const size_t copy_size,
                                            const size_t i)
@@ -60,7 +98,7 @@ namespace sha1_utils {
             return sha1_context(*this, std::make_index_sequence<buffer_size>());
         }
 
-        const char w[buffer_size] = {0};
+        const unsigned char w[buffer_size] = {0};
         const uint32_t result[5] = {0x67452301,
                                  0xEFCDAB89,
                                  0x98BADCFE,
@@ -267,8 +305,8 @@ namespace sha1_utils {
         return sha1_update(source, sha1_utils::perform_loop<perform_loop_base::sha1_rounds>(source, sha1_utils::sha1_compute().add_context_round(source).add_rotate_round()).calculate()._ctx_update);
     }
 
-    template <size_t N, size_t ... index>
-    constexpr sha1_context sha1_test_append_some_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size, std::index_sequence<index...>)
+    template <size_t N, size_t ... index, typename Char>
+    constexpr sha1_context sha1_test_append_some_helper(const sha1_context& context, const Char (&array)[N], const size_t array_offset, const size_t copy_size, std::index_sequence<index...>)
     {
         // enumerate the whole context buffer - 64 elements
         return sha1_context(context, array, array_offset, copy_size, std::make_index_sequence<sha1_context::buffer_size>());
@@ -277,8 +315,8 @@ namespace sha1_utils {
     /**
         Appends some data to the existing context.
     */
-    template <size_t N>
-    constexpr sha1_context sha1_test_append_some(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
+    template <size_t N, typename Char>
+    constexpr sha1_context sha1_test_append_some(const sha1_context& context, const Char (&array)[N], const size_t array_offset, const size_t copy_size)
     {
         return copy_size == 0 ? context : sha1_test_append_some_helper(context, array, array_offset, copy_size, std::make_index_sequence<N>());
     }
@@ -305,6 +343,31 @@ namespace sha1_utils {
     constexpr sha1_context sha1_add_data(const sha1_context& context, const char (&array)[N])
     {
       return sha1_add_data_helper(context, array, 0, N - 1);
+    }
+
+    constexpr sha1_context sha1_append_padding(const sha1_context& context, const uint64_t padByte)
+    {
+        return sha1_test_append_some(context, sha1_pad::data, 0, padByte);
+    }
+
+    constexpr sha1_context sha1_append_length_buffer(const sha1_context& context, const uint64_t contextLength)
+    {
+        return sha1_context(context, sha1_length_buffer(contextLength), std::make_index_sequence<56>());
+    }
+
+    constexpr auto sha1_padding_byte(const uint64_t lengthBits)
+    {
+        return lengthBits < 448 ? (448 - lengthBits) / 8 : (lengthBits > 448 ? (448 + (512 - lengthBits)) / 8 : 64);
+    }
+
+    constexpr auto sha1_padding_byte(const sha1_context& context)
+    {
+        return sha1_padding_byte( (context.data_len * 8) % 512 );
+    }
+
+    constexpr sha1_context sha1_finalize(const sha1_context& context)
+    {
+        return sha1_calc(sha1_append_length_buffer(sha1_append_padding(context, sha1_padding_byte(context)), context.data_len));
     }
 
 }

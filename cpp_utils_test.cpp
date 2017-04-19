@@ -169,7 +169,7 @@ static void test_sha1_internal_utils()
     static_assert(ctx_copied.w[5] == 'Y', "");
     static_assert(ctx_copied.w[6] == 'Z', "");
     static_assert(ctx_copied.w[7] == '\0', "");
-    assert(std::string(ctx_copied.w) == "abcdXYZ");
+    assert(std::string((const char*)ctx_copied.w) == "abcdXYZ");
 }
 
 static void test_sha1_utils()
@@ -216,8 +216,24 @@ static void test_sha1_utils()
     static_assert(context_appended.result[2] == 1393575024, "");
     static_assert(context_appended.result[3] == 2380056992, "");
     static_assert(context_appended.result[4] == 554802719, "");
+    static_assert(sha1_utils::sha1_padding_byte(context_appended) == 53, "");
+    static_assert(context_appended.data_len*8 == 536, "");
+    constexpr auto lbuff = sha1_utils::sha1_length_buffer(context_appended.data_len);
+    static_assert(lbuff.data[0] == 0, "");
+    static_assert(lbuff.data[1] == 0, "");
+    static_assert(lbuff.data[2] == 0, "");
+    static_assert(lbuff.data[3] == 0, "");
+    static_assert(lbuff.data[4] == 0, "");
+    static_assert(lbuff.data[5] == 0, "");
+    static_assert(lbuff.data[6] == 2, "");
+    static_assert(lbuff.data[7] == 24, "");
 
-    //@todo finalization
+    constexpr auto ctx_final = sha1_utils::sha1_finalize(context_appended);
+    static_assert(ctx_final.result[0] == 4222907567, "");
+    static_assert(ctx_final.result[1] == 4172679190, "");
+    static_assert(ctx_final.result[2] == 2502518017, "");
+    static_assert(ctx_final.result[3] == 133181236, "");
+    static_assert(ctx_final.result[4] == 2662887834, "");
 }
 
 int main()
