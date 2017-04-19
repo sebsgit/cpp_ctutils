@@ -201,6 +201,22 @@ static void test_sha1_utils()
     static_assert(ctx_updated.result[2] == 1370285663, "");
     static_assert(ctx_updated.result[3] == 895243306, "");
     static_assert(ctx_updated.result[4] == 3663183577, "");
+
+    // after adding more than 64 characters the buffer should wrap and update
+    // the result for the first 64 byte batch
+    constexpr auto context = sha1_utils::sha1_context();
+    constexpr auto context_appended = sha1_utils::sha1_add_data(context, "E this text has exactly 67 letters, so it's easy to test some code.");
+    static_assert(context_appended.w[0] == 'd', "");
+    static_assert(context_appended.w[1] == 'e', "");
+    static_assert(context_appended.w[2] == '.', "");
+    static_assert(context_appended.w[3] == '\0', "");
+    assert(context_appended.buff_len == 3);
+    static_assert(context_appended.result[0] == 12576993, "");
+    static_assert(context_appended.result[1] == 1063349476, "");
+    static_assert(context_appended.result[2] == 1393575024, "");
+    static_assert(context_appended.result[3] == 2380056992, "");
+    static_assert(context_appended.result[4] == 554802719, "");
+
     //@todo finalization
 }
 

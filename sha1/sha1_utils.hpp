@@ -7,6 +7,11 @@ namespace sha1_utils {
 
     class sha1_context {
     public:
+
+        static constexpr size_t buffer_size = 64;
+
+        constexpr sha1_context() {}
+
         template <size_t N, size_t ... index>
         constexpr sha1_context(const char (&message)[N], std::index_sequence<index...>)
             :w{ message[index] ... }
@@ -25,6 +30,7 @@ namespace sha1_utils {
                                const size_t copy_size,
                                std::index_sequence<index...>)
             :w{ get_item_helper_(other, message, array_offset, copy_size, index) ... }
+            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
             ,buff_len(other.buff_len + copy_size)
         {
         }
@@ -49,7 +55,12 @@ namespace sha1_utils {
 
         }
 
-        const char w[64] = {0};
+        constexpr auto clear_buff_len() const
+        {
+            return sha1_context(*this, std::make_index_sequence<buffer_size>());
+        }
+
+        const char w[buffer_size] = {0};
         const uint32_t result[5] = {0x67452301,
                                  0xEFCDAB89,
                                  0x98BADCFE,
@@ -57,6 +68,17 @@ namespace sha1_utils {
                                  0xC3D2E1F0};
         const uint64_t data_len = 0;
         const uint64_t buff_len = 0;
+
+    private:
+        template <size_t ... index64>
+        constexpr sha1_context(const sha1_context& other, std::index_sequence<index64...>)
+            :w{ 0 }
+            ,result{ other.result[0], other.result[1], other.result[2], other.result[3], other.result[4] }
+            ,data_len(other.data_len)
+            ,buff_len(0)
+        {
+
+        }
     };
 
     template <size_t N>
@@ -237,7 +259,7 @@ namespace sha1_utils {
 
     constexpr sha1_context sha1_update(const sha1_context& source, const context_update_helper& update)
     {
-        return sha1_context(source, update.a, update.b, update.c, update.d, update.e, std::make_index_sequence<64>());
+        return sha1_context(source, update.a, update.b, update.c, update.d, update.e, std::make_index_sequence<sha1_context::buffer_size>());
     }
 
     constexpr sha1_context sha1_calc(const sha1_context& source)
@@ -248,8 +270,8 @@ namespace sha1_utils {
     template <size_t N, size_t ... index>
     constexpr sha1_context sha1_test_append_some_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size, std::index_sequence<index...>)
     {
-        // enumerate the whole context buffer - 16 elements
-        return sha1_context(context, array, array_offset, copy_size, std::make_index_sequence<16>());
+        // enumerate the whole context buffer - 64 elements
+        return sha1_context(context, array, array_offset, copy_size, std::make_index_sequence<sha1_context::buffer_size>());
     }
 
     /**
@@ -258,9 +280,31 @@ namespace sha1_utils {
     template <size_t N>
     constexpr sha1_context sha1_test_append_some(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
     {
-        return sha1_test_append_some_helper(context, array, array_offset, copy_size, std::make_index_sequence<N>());
+        return copy_size == 0 ? context : sha1_test_append_some_helper(context, array, array_offset, copy_size, std::make_index_sequence<N>());
     }
 
+    template <typename T, typename U>
+    constexpr T min(const T t, const U u)
+    {
+        return t < u ? t : static_cast<T>(u);
+    }
 
+    template <size_t N>
+    constexpr sha1_context sha1_add_data_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
+    {
+        return (context.buff_len + copy_size) < sha1_context::buffer_size ?
+                sha1_test_append_some(context, array, array_offset, copy_size)
+              : sha1_add_data_helper( sha1_calc(sha1_test_append_some(context, array, array_offset, min(sha1_context::buffer_size - context.buff_len, copy_size) )).clear_buff_len(),
+                                 array,
+                                 array_offset + min(sha1_context::buffer_size - context.buff_len, copy_size),
+                                 copy_size - min(sha1_context::buffer_size - context.buff_len, copy_size));
+
+    }
+
+    template <size_t N>
+    constexpr sha1_context sha1_add_data(const sha1_context& context, const char (&array)[N])
+    {
+      return sha1_add_data_helper(context, array, 0, N - 1);
+    }
 
 }
