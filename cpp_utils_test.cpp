@@ -153,23 +153,23 @@ static void test_aes_utils()
 static void test_sha1_internal_utils()
 {
     constexpr auto ctx = sha1_utils::sha1_create_context("abcd");
-    assert(ctx.buff_len == 4);
-    static_assert(ctx.w[0] == 'a', "");
-    static_assert(ctx.w[1] == 'b', "");
-    static_assert(ctx.w[2] == 'c', "");
-    static_assert(ctx.w[3] == 'd', "");
-    static_assert(ctx.w[4] == '\0', "");
-    constexpr auto ctx_copied = sha1_utils::sha1_append_some(ctx, "uXYZy", 1, 3);
-    assert(ctx_copied.buff_len == 7);
-    static_assert(ctx_copied.w[0] == 'a', "");
-    static_assert(ctx_copied.w[1] == 'b', "");
-    static_assert(ctx_copied.w[2] == 'c', "");
-    static_assert(ctx_copied.w[3] == 'd', "");
-    static_assert(ctx_copied.w[4] == 'X', "");
-    static_assert(ctx_copied.w[5] == 'Y', "");
-    static_assert(ctx_copied.w[6] == 'Z', "");
-    static_assert(ctx_copied.w[7] == '\0', "");
-    assert(std::string((const char*)ctx_copied.w) == "abcdXYZ");
+    assert(ctx.buffer_length == 4);
+    static_assert(ctx.buffer[0] == 'a', "");
+    static_assert(ctx.buffer[1] == 'b', "");
+    static_assert(ctx.buffer[2] == 'c', "");
+    static_assert(ctx.buffer[3] == 'd', "");
+    static_assert(ctx.buffer[4] == '\0', "");
+    constexpr auto ctx_copied = ctx.append("uXYZy", 1, 3);
+    assert(ctx_copied.buffer_length == 7);
+    static_assert(ctx_copied.buffer[0] == 'a', "");
+    static_assert(ctx_copied.buffer[1] == 'b', "");
+    static_assert(ctx_copied.buffer[2] == 'c', "");
+    static_assert(ctx_copied.buffer[3] == 'd', "");
+    static_assert(ctx_copied.buffer[4] == 'X', "");
+    static_assert(ctx_copied.buffer[5] == 'Y', "");
+    static_assert(ctx_copied.buffer[6] == 'Z', "");
+    static_assert(ctx_copied.buffer[7] == '\0', "");
+    assert(std::string((const char*)ctx_copied.buffer) == "abcdXYZ");
 }
 
 static void test_sha1_utils()
@@ -206,19 +206,19 @@ static void test_sha1_utils()
     // the result for the first 64 byte batch
     constexpr auto context = sha1_utils::sha1_context();
     constexpr auto context_appended = sha1_utils::sha1_add_data(context, "E this text has exactly 67 letters, so it's easy to test some code.");
-    static_assert(context_appended.w[0] == 'd', "");
-    static_assert(context_appended.w[1] == 'e', "");
-    static_assert(context_appended.w[2] == '.', "");
-    static_assert(context_appended.w[3] == '\0', "");
-    assert(context_appended.buff_len == 3);
+    static_assert(context_appended.buffer[0] == 'd', "");
+    static_assert(context_appended.buffer[1] == 'e', "");
+    static_assert(context_appended.buffer[2] == '.', "");
+    static_assert(context_appended.buffer[3] == '\0', "");
+    assert(context_appended.buffer_length == 3);
     static_assert(context_appended.result[0] == 12576993, "");
     static_assert(context_appended.result[1] == 1063349476, "");
     static_assert(context_appended.result[2] == 1393575024, "");
     static_assert(context_appended.result[3] == 2380056992, "");
     static_assert(context_appended.result[4] == 554802719, "");
     static_assert(sha1_utils::priv::sha1_padding_byte(context_appended) == 53, "");
-    static_assert(context_appended.data_len*8 == 536, "");
-    constexpr auto lbuff = sha1_utils::sha1_length_buffer(context_appended.data_len);
+    static_assert(context_appended.message_length*8 == 536, "");
+    constexpr auto lbuff = sha1_utils::priv::sha1_length_buffer(context_appended.message_length);
     static_assert(lbuff.data[0] == 0, "");
     static_assert(lbuff.data[1] == 0, "");
     static_assert(lbuff.data[2] == 0, "");
@@ -264,6 +264,30 @@ static void test_sha1_utils()
         static_assert(sha1_result[17] == 0xe6, "");
         static_assert(sha1_result[18] == 0x0e, "");
         static_assert(sha1_result[19] == 0x65, "");
+    }
+    {
+        constexpr auto hash = sha1_utils::sha1("maybe not the best text to test the sha1");
+        // b6 7b 33 7c 3c f5 45 3e 9d 29 1f 16 01 70 91 e8 96 e4 9c b5
+        static_assert(hash[0] == 0xb6, "");
+        static_assert(hash[1] == 0x7b, "");
+        static_assert(hash[2] == 0x33, "");
+        static_assert(hash[3] == 0x7c, "");
+        static_assert(hash[4] == 0x3c, "");
+        static_assert(hash[5] == 0xf5, "");
+        static_assert(hash[6] == 0x45, "");
+        static_assert(hash[7] == 0x3e, "");
+        static_assert(hash[8] == 0x9d, "");
+        static_assert(hash[9] == 0x29, "");
+        static_assert(hash[10] == 0x1f, "");
+        static_assert(hash[11] == 0x16, "");
+        static_assert(hash[12] == 0x01, "");
+        static_assert(hash[13] == 0x70, "");
+        static_assert(hash[14] == 0x91, "");
+        static_assert(hash[15] == 0xe8, "");
+        static_assert(hash[16] == 0x96, "");
+        static_assert(hash[17] == 0xe4, "");
+        static_assert(hash[18] == 0x9c, "");
+        static_assert(hash[19] == 0xb5, "");
     }
 }
 

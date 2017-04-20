@@ -6,72 +6,46 @@
 /// @TODO document and cleanup
 namespace sha1_utils {
 
-    class sha1_pad {
-    public:
-        static constexpr unsigned char data[256] = {
-            0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    namespace priv {
+        class sha1_pad {
+        public:
+            static constexpr unsigned char data[256] = {
+                0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+            };
         };
-    };
 
-    class sha1_length_buffer {
-    public:
-        constexpr sha1_length_buffer(const uint64_t buffSize)
-            : lengthBits(buffSize * 8)
-            , data{ (unsigned char)(lengthBits >> 56), (unsigned char)(lengthBits >> 48),
-                    (unsigned char)(lengthBits >> 40), (unsigned char)(lengthBits >> 32),
-                    (unsigned char)(lengthBits >> 24), (unsigned char)(lengthBits >> 16),
-                    (unsigned char)(lengthBits >> 8), (unsigned char)(lengthBits >> 0) }
-        {
+        class sha1_length_buffer {
+        public:
+            constexpr sha1_length_buffer(const uint64_t buffSize)
+                : lengthBits(buffSize * 8)
+                , data{ (unsigned char)(lengthBits >> 56), (unsigned char)(lengthBits >> 48),
+                        (unsigned char)(lengthBits >> 40), (unsigned char)(lengthBits >> 32),
+                        (unsigned char)(lengthBits >> 24), (unsigned char)(lengthBits >> 16),
+                        (unsigned char)(lengthBits >> 8), (unsigned char)(lengthBits >> 0) }
+            {
 
-        }
-        const int64_t lengthBits = 0;
-        const unsigned char data[8] = {0};
-    };
+            }
+            const int64_t lengthBits = 0;
+            const unsigned char data[8] = {0};
+        };
+    }
 
     class sha1_context {
-    public:
-
-        static constexpr size_t buffer_size = 64;
-
-        constexpr sha1_context() {}
-
-        template <size_t N, size_t ... index>
-        constexpr sha1_context(const char (&message)[N], std::index_sequence<index...>)
-            :w{ (unsigned char)message[index] ... }
-            ,data_len(N - 1)
-            ,buff_len(N - 1)
-        {
-
-        }
-
-        template <size_t ... index56>
-        constexpr sha1_context(const sha1_context& other, const sha1_length_buffer& lengthBuffer, std::index_sequence<index56 ...>)
-            :w{other.w[index56] ..., lengthBuffer.data[0], lengthBuffer.data[1], lengthBuffer.data[2],
-                lengthBuffer.data[3], lengthBuffer.data[4], lengthBuffer.data[5], lengthBuffer.data[6], lengthBuffer.data[7] }
-            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
-            ,data_len(other.data_len + 8)
-            ,buff_len(other.buff_len + 8)
-        {
-
-        }
-
+    private:
         /**
-            Creates new context by appending some data to the existing other context.
+            Resets the internal message buffer.
         */
-        template <size_t N, size_t ... index, typename Char>
-        constexpr sha1_context(const sha1_context& other,
-                               const Char (&message)[N],
-                               const size_t array_offset,
-                               const size_t copy_size,
-                               std::index_sequence<index...>)
-            :w{ get_item_helper_(other, message, array_offset, copy_size, index) ... }
-            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
-            ,data_len(other.data_len + copy_size)
-            ,buff_len(other.buff_len + copy_size)
+        template <size_t ... index64>
+        constexpr sha1_context(const sha1_context& other, std::index_sequence<index64...>)
+            :buffer{ 0 }
+            ,result{ other.result[0], other.result[1], other.result[2], other.result[3], other.result[4] }
+            ,message_length(other.message_length)
+            ,buffer_length(0)
         {
+
         }
 
         template <size_t N, typename Char>
@@ -81,46 +55,89 @@ namespace sha1_utils {
                                            const size_t copy_size,
                                            const size_t i)
         {
-            return i < other.buff_len ? other.w[i] : (i - other.buff_len < copy_size ? message[i - other.buff_len + array_offset] : '\0');
+            return i < other.buffer_length ? other.buffer[i] : (i - other.buffer_length < copy_size ? message[i - other.buffer_length + array_offset] : '\0');
         }
-
+        /**
+            Updates the result buffer with given values.
+        */
         template <size_t ... index64>
         constexpr sha1_context(const sha1_context& other, uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e, std::index_sequence<index64...>)
-            :w{ other.w[index64] ... }
+            :buffer{ other.buffer[index64] ... }
             ,result{ other.result[0] + a, other.result[1] + b, other.result[2] + c, other.result[3] + d, other.result[4] + e }
-            ,data_len(other.data_len)
-            ,buff_len(other.buff_len)
+            ,message_length(other.message_length)
+            ,buffer_length(other.buffer_length)
         {
 
         }
-
-        constexpr auto clear_buff_len() const
+        /**
+            Appends the 8 byte length buffer to this context.
+        */
+        template <size_t ... index56>
+        constexpr sha1_context(const sha1_context& other, const priv::sha1_length_buffer& lengthBuffer, std::index_sequence<index56 ...>)
+            :buffer{other.buffer[index56] ..., lengthBuffer.data[0], lengthBuffer.data[1], lengthBuffer.data[2],
+                lengthBuffer.data[3], lengthBuffer.data[4], lengthBuffer.data[5], lengthBuffer.data[6], lengthBuffer.data[7] }
+            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
+            ,message_length(other.message_length + 8)
+            ,buffer_length(other.buffer_length + 8)
         {
-            return sha1_context(*this, std::make_index_sequence<buffer_size>());
+
+        }
+        /**
+            Creates new context by appending some data to the existing other context.
+        */
+        template <size_t N, size_t ... index, typename Char>
+        constexpr sha1_context(const sha1_context& other,
+                               const Char (&message)[N],
+                               const size_t array_offset,
+                               const size_t copy_size,
+                               std::index_sequence<index...>)
+            :buffer{ get_item_helper_(other, message, array_offset, copy_size, index) ... }
+            ,result{other.result[0], other.result[1], other.result[2], other.result[3], other.result[4]}
+            ,message_length(other.message_length + copy_size)
+            ,buffer_length(other.buffer_length + copy_size)
+        {
+        }
+    public:
+        static constexpr size_t Size = 64;
+
+        constexpr sha1_context() {}
+
+        constexpr auto reset_buffer() const
+        {
+            return sha1_context(*this, std::make_index_sequence<Size>());
         }
 
-        const unsigned char w[buffer_size] = {0};
+        constexpr auto update_result(uint32_t a, uint32_t b, uint32_t c, uint32_t d, uint32_t e) const
+        {
+            return sha1_context(*this, a, b, c, d, e, std::make_index_sequence<Size>());
+        }
+
+        constexpr auto append_length_buffer(const priv::sha1_length_buffer& lengthBuffer) const
+        {
+            return sha1_context(*this, lengthBuffer, std::make_index_sequence<56>());
+        }
+
+        template <size_t N, typename Char>
+        constexpr auto append(const Char (&message)[N], const size_t array_offset, const size_t copy_size) const
+        {
+            static_assert(std::is_same<char, Char>::value || std::is_same<unsigned char, Char>::value, "cannot append non char data to context.");
+            return copy_size == 0 ? *this : sha1_context(*this, message, array_offset, copy_size, std::make_index_sequence<Size>());
+        }
+
+        constexpr auto append_padding(const uint64_t padLength, const uint64_t padBufferOffset = 0) const
+        {
+            return this->append(priv::sha1_pad::data, padBufferOffset, padLength);
+        }
+
+        const unsigned char buffer[Size] = {0};
         const uint32_t result[5] = {0x67452301,
                                  0xEFCDAB89,
                                  0x98BADCFE,
                                  0x10325476,
                                  0xC3D2E1F0};
-        const uint64_t data_len = 0;
-        const uint64_t buff_len = 0;
-
-    private:
-        template <size_t ... index64>
-        constexpr sha1_context(const sha1_context& other, std::index_sequence<index64...>)
-            :w{ 0 }
-            ,result{ other.result[0], other.result[1], other.result[2], other.result[3], other.result[4] }
-            ,data_len(other.data_len)
-            ,buff_len(0)
-        {
-
-        }
+        const uint64_t message_length = 0;
+        const uint64_t buffer_length = 0;
     };
-
-    template <size_t N, typename Char> constexpr sha1_context sha1_append_some(const sha1_context& context, const Char (&array)[N], const size_t array_offset, const size_t copy_size);
 
     class sha1_result {
     public:
@@ -133,6 +150,7 @@ namespace sha1_utils {
                 }
         {}
         constexpr unsigned char operator[](const size_t i) const { return data[i]; }
+    private:
         const unsigned char data[20] = {0};
     };
 
@@ -145,7 +163,7 @@ namespace sha1_utils {
             template <typename Ctx>
             constexpr uint32_t get_x(const Ctx& context, size_t i) const
             {
-                return (((uint32_t)context.w[i * 4] << 24) | ((uint32_t)context.w[i * 4 + 1] << 16) | ((uint32_t)context.w[i * 4 + 2] << 8) | ((uint32_t)context.w[i * 4 + 3]));
+                return (((uint32_t)context.buffer[i * 4] << 24) | ((uint32_t)context.buffer[i * 4 + 1] << 16) | ((uint32_t)context.buffer[i * 4 + 2] << 8) | ((uint32_t)context.buffer[i * 4 + 3]));
             }
 
             template <typename Ctx, size_t ... index_16>
@@ -306,19 +324,12 @@ namespace sha1_utils {
 
         constexpr sha1_context sha1_update(const sha1_context& source, const context_update_helper& update)
         {
-            return sha1_context(source, update.a, update.b, update.c, update.d, update.e, std::make_index_sequence<sha1_context::buffer_size>());
+            return source.update_result(update.a, update.b, update.c, update.d, update.e);
         }
 
         constexpr sha1_context sha1_calc(const sha1_context& source)
         {
             return sha1_update(source, perform_loop<perform_loop_base::sha1_rounds>(source, sha1_compute().add_context_round(source).add_rotate_round()).calculate()._ctx_update);
-        }
-
-        template <size_t N, size_t ... index, typename Char>
-        constexpr sha1_context sha1_append_some_helper(const sha1_context& context, const Char (&array)[N], const size_t array_offset, const size_t copy_size, std::index_sequence<index...>)
-        {
-            // enumerate the whole context buffer - 64 elements
-            return sha1_context(context, array, array_offset, copy_size, std::make_index_sequence<sha1_context::buffer_size>());
         }
 
         template <typename T, typename U>
@@ -330,12 +341,12 @@ namespace sha1_utils {
         template <size_t N>
         constexpr sha1_context sha1_add_data_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
         {
-            return (context.buff_len + copy_size) < sha1_context::buffer_size ?
-                    sha1_append_some(context, array, array_offset, copy_size)
-                  : sha1_add_data_helper( sha1_calc(sha1_append_some(context, array, array_offset, min(sha1_context::buffer_size - context.buff_len, copy_size) )).clear_buff_len(),
+            return (context.buffer_length + copy_size) < sha1_context::Size ?
+                    context.append(array, array_offset, copy_size)
+                  : sha1_add_data_helper( sha1_calc(context.append(array, array_offset, min(sha1_context::Size - context.buffer_length, copy_size) )).reset_buffer(),
                                      array,
-                                     array_offset + min(sha1_context::buffer_size - context.buff_len, copy_size),
-                                     copy_size - min(sha1_context::buffer_size - context.buff_len, copy_size));
+                                     array_offset + min(sha1_context::Size - context.buffer_length, copy_size),
+                                     copy_size - min(sha1_context::Size - context.buffer_length, copy_size));
 
         }
 
@@ -343,12 +354,7 @@ namespace sha1_utils {
 
         constexpr sha1_context sha1_append_padding(const sha1_context& context, const uint64_t padByte, const uint64_t padBufferOffset = 0)
         {
-            return sha1_append_some(context, sha1_pad::data, padBufferOffset, padByte);
-        }
-
-        constexpr sha1_context sha1_append_length_buffer(const sha1_context& context, const uint64_t contextLength)
-        {
-            return sha1_context(context, sha1_length_buffer(contextLength), std::make_index_sequence<56>());
+            return context.append_padding(padByte, padBufferOffset);
         }
 
         constexpr auto sha1_padding_byte(const uint64_t lengthBits)
@@ -358,15 +364,14 @@ namespace sha1_utils {
 
         constexpr auto sha1_padding_byte(const sha1_context& context)
         {
-            return sha1_padding_byte( (context.data_len * 8) % 512 );
+            return sha1_padding_byte( (context.message_length * 8) % 512 );
         }
 
         constexpr sha1_context sha1_finalize_unpadded(const sha1_context& context)
         {
-            return sha1_append_length_buffer(sha1_append_padding(sha1_calc(sha1_append_padding(context, sha1_context::buffer_size - context.buff_len)).clear_buff_len(),
-                                       sha1_padding_byte(context) + context.buff_len - sha1_context::buffer_size,
-                                       sha1_context::buffer_size - context.buff_len),
-                                            context.data_len);
+            return sha1_append_padding(sha1_calc(sha1_append_padding(context, sha1_context::Size - context.buffer_length)).reset_buffer(),
+                                       sha1_padding_byte(context) + context.buffer_length - sha1_context::Size,
+                                       sha1_context::Size - context.buffer_length).append_length_buffer(context.message_length);
         }
     } // ~priv
 
@@ -382,25 +387,21 @@ namespace sha1_utils {
       return priv::sha1_add_data_helper(context, array, 0, N - 1);
     }
 
-    /**
-        Appends some data to the existing context.
-    */
-    template <size_t N, typename Char>
-    constexpr sha1_context sha1_append_some(const sha1_context& context, const Char (&array)[N], const size_t array_offset, const size_t copy_size)
-    {
-        static_assert(std::is_same<char, Char>::value || std::is_same<unsigned char, Char>::value, "cannot append non char data to context.");
-        return copy_size == 0 ? context : priv::sha1_append_some_helper(context, array, array_offset, copy_size, std::make_index_sequence<N>());
-    }
-
     constexpr sha1_context sha1_finalize(const sha1_context& context)
     {
-        return context.buff_len + 8 + priv::sha1_padding_byte(context) <= sha1_context::buffer_size ?
-                    priv::sha1_calc(priv::sha1_append_length_buffer(priv::sha1_append_padding(context, priv::sha1_padding_byte(context)), context.data_len))
+        return context.buffer_length + 8 + priv::sha1_padding_byte(context) <= sha1_context::Size ?
+                    priv::sha1_calc(context.append_padding(priv::sha1_padding_byte(context)).append_length_buffer(context.message_length))
                   :priv::sha1_calc(priv::sha1_finalize_unpadded(context));
+    }
+
+    template <size_t N, typename Char>
+    constexpr sha1_result sha1(const Char (&array)[N])
+    {
+        return sha1_result(sha1_finalize(sha1_add_data(sha1_context(), array)));
     }
 
 }
 
 #ifdef __GNUC__
-constexpr unsigned char sha1_utils::sha1_pad::data[];
+constexpr unsigned char sha1_utils::priv::sha1_pad::data[];
 #endif
