@@ -119,6 +119,20 @@ namespace sha1_utils {
         }
     };
 
+    class sha1_result {
+    public:
+        constexpr sha1_result(const sha1_context& context)
+            :data{ (unsigned char)(context.result[0] >> 24), (unsigned char)(context.result[0] >> 16), (unsigned char)(context.result[0] >> 8), (unsigned char)(context.result[0] >> 0),
+                   (unsigned char)(context.result[1] >> 24), (unsigned char)(context.result[1] >> 16), (unsigned char)(context.result[1] >> 8), (unsigned char)(context.result[1] >> 0),
+                   (unsigned char)(context.result[2] >> 24), (unsigned char)(context.result[2] >> 16), (unsigned char)(context.result[2] >> 8), (unsigned char)(context.result[2] >> 0),
+                   (unsigned char)(context.result[3] >> 24), (unsigned char)(context.result[3] >> 16), (unsigned char)(context.result[3] >> 8), (unsigned char)(context.result[3] >> 0),
+                   (unsigned char)(context.result[4] >> 24), (unsigned char)(context.result[4] >> 16), (unsigned char)(context.result[4] >> 8), (unsigned char)(context.result[4] >> 0),
+                }
+        {}
+        constexpr unsigned char operator[](const size_t i) const { return data[i]; }
+        const unsigned char data[20] = {0};
+    };
+
     template <size_t N>
     constexpr auto sha1_create_context(const char (&message)[N])
     {
@@ -345,9 +359,9 @@ namespace sha1_utils {
       return sha1_add_data_helper(context, array, 0, N - 1);
     }
 
-    constexpr sha1_context sha1_append_padding(const sha1_context& context, const uint64_t padByte)
+    constexpr sha1_context sha1_append_padding(const sha1_context& context, const uint64_t padByte, const uint64_t padBufferOffset = 0)
     {
-        return sha1_test_append_some(context, sha1_pad::data, 0, padByte);
+        return sha1_test_append_some(context, sha1_pad::data, padBufferOffset, padByte);
     }
 
     constexpr sha1_context sha1_append_length_buffer(const sha1_context& context, const uint64_t contextLength)
@@ -365,9 +379,23 @@ namespace sha1_utils {
         return sha1_padding_byte( (context.data_len * 8) % 512 );
     }
 
+    constexpr sha1_context sha1_finalize_unpadded(const sha1_context& context)
+    {
+        return sha1_append_length_buffer(sha1_append_padding(sha1_calc(sha1_append_padding(context, sha1_context::buffer_size - context.buff_len)).clear_buff_len(),
+                                   sha1_padding_byte(context) + context.buff_len - sha1_context::buffer_size,
+                                   sha1_context::buffer_size - context.buff_len),
+                                        context.data_len);
+    }
+
     constexpr sha1_context sha1_finalize(const sha1_context& context)
     {
-        return sha1_calc(sha1_append_length_buffer(sha1_append_padding(context, sha1_padding_byte(context)), context.data_len));
+        return context.buff_len + 8 + sha1_padding_byte(context) <= sha1_context::buffer_size ?
+                    sha1_calc(sha1_append_length_buffer(sha1_append_padding(context, sha1_padding_byte(context)), context.data_len))
+                  :sha1_calc(sha1_finalize_unpadded(context));
     }
 
 }
+
+#ifdef __GNUC__
+constexpr unsigned char sha1_utils::sha1_pad::data[];
+#endif

@@ -234,6 +234,37 @@ static void test_sha1_utils()
     static_assert(ctx_final.result[2] == 2502518017, "");
     static_assert(ctx_final.result[3] == 133181236, "");
     static_assert(ctx_final.result[4] == 2662887834, "");
+
+    {
+        constexpr auto context_unpadded = sha1_utils::sha1_add_data(context, "E this text has exactly 62 letters, so it's easy to test some.");
+        constexpr auto ctx_final = sha1_utils::sha1_finalize(context_unpadded);
+        static_assert(ctx_final.result[0] == 195749063, "");
+        static_assert(ctx_final.result[1] == 2775979648, "");
+        static_assert(ctx_final.result[2] == 527287973, "");
+        static_assert(ctx_final.result[3] == 1191620250, "");
+        static_assert(ctx_final.result[4] == 300289637, "");
+        constexpr auto sha1_result = sha1_utils::sha1_result(ctx_final);
+        static_assert(sha1_result[0] == 0xb, "");
+        static_assert(sha1_result[1] == 0xaa, "");
+        static_assert(sha1_result[2] == 0xe4, "");
+        static_assert(sha1_result[3] == 0xc7, "");
+        static_assert(sha1_result[4] == 0xa5, "");
+        static_assert(sha1_result[5] == 0x76, "");
+        static_assert(sha1_result[6] == 0x16, "");
+        static_assert(sha1_result[7] == 0x80, "");
+        static_assert(sha1_result[8] == 0x1f, "");
+        static_assert(sha1_result[9] == 0x6d, "");
+        static_assert(sha1_result[10] == 0xc6, "");
+        static_assert(sha1_result[11] == 0xa5, "");
+        static_assert(sha1_result[12] == 0x47, "");
+        static_assert(sha1_result[13] == 0x06, "");
+        static_assert(sha1_result[14] == 0xae, "");
+        static_assert(sha1_result[15] == 0x9a, "");
+        static_assert(sha1_result[16] == 0x11, "");
+        static_assert(sha1_result[17] == 0xe6, "");
+        static_assert(sha1_result[18] == 0x0e, "");
+        static_assert(sha1_result[19] == 0x65, "");
+    }
 }
 
 int main()
