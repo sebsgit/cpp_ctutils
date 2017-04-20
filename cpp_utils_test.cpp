@@ -216,7 +216,7 @@ static void test_sha1_utils()
     static_assert(context_appended.result[2] == 1393575024, "");
     static_assert(context_appended.result[3] == 2380056992, "");
     static_assert(context_appended.result[4] == 554802719, "");
-    static_assert(sha1_utils::priv::sha1_padding_byte(context_appended) == 53, "");
+    static_assert(context_appended.padding_byte() == 53, "");
     static_assert(context_appended.message_length*8 == 536, "");
     constexpr auto lbuff = sha1_utils::priv::sha1_length_buffer(context_appended.message_length);
     static_assert(lbuff.data[0] == 0, "");

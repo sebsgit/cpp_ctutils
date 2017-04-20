@@ -97,6 +97,10 @@ namespace sha1_utils {
             ,buffer_length(other.buffer_length + copy_size)
         {
         }
+        static constexpr auto pad_byte(const uint64_t lengthBits)
+        {
+            return lengthBits < 448 ? (448 - lengthBits) / 8 : (lengthBits > 448 ? (448 + (512 - lengthBits)) / 8 : 64);
+        }
     public:
         static constexpr size_t Size = 64;
 
@@ -124,9 +128,19 @@ namespace sha1_utils {
             return copy_size == 0 ? *this : sha1_context(*this, message, array_offset, copy_size, std::make_index_sequence<Size>());
         }
 
+        constexpr auto padding_byte() const
+        {
+            return pad_byte( (this->message_length * 8) % 512 );
+        }
+
         constexpr auto append_padding(const uint64_t padLength, const uint64_t padBufferOffset = 0) const
         {
             return this->append(priv::sha1_pad::data, padBufferOffset, padLength);
+        }
+
+        constexpr size_t free_space() const
+        {
+            return Size - this->buffer_length;
         }
 
         const unsigned char buffer[Size] = {0};
@@ -332,46 +346,25 @@ namespace sha1_utils {
             return sha1_update(source, perform_loop<perform_loop_base::sha1_rounds>(source, sha1_compute().add_context_round(source).add_rotate_round()).calculate()._ctx_update);
         }
 
-        template <typename T, typename U>
-        constexpr T min(const T t, const U u)
-        {
-            return t < u ? t : static_cast<T>(u);
-        }
-
         template <size_t N>
         constexpr sha1_context sha1_add_data_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
         {
             return (context.buffer_length + copy_size) < sha1_context::Size ?
                     context.append(array, array_offset, copy_size)
-                  : sha1_add_data_helper( sha1_calc(context.append(array, array_offset, min(sha1_context::Size - context.buffer_length, copy_size) )).reset_buffer(),
+                  : sha1_add_data_helper( sha1_calc(context.append(array, array_offset, std::min(context.free_space(), copy_size) )).reset_buffer(),
                                      array,
-                                     array_offset + min(sha1_context::Size - context.buffer_length, copy_size),
-                                     copy_size - min(sha1_context::Size - context.buffer_length, copy_size));
-
+                                     array_offset + std::min(context.free_space(), copy_size),
+                                     copy_size - std::min(context.free_space(), copy_size));
         }
 
         template <size_t N> constexpr sha1_context sha1_add_data(const sha1_context& context, const char (&array)[N]);
 
-        constexpr sha1_context sha1_append_padding(const sha1_context& context, const uint64_t padByte, const uint64_t padBufferOffset = 0)
-        {
-            return context.append_padding(padByte, padBufferOffset);
-        }
-
-        constexpr auto sha1_padding_byte(const uint64_t lengthBits)
-        {
-            return lengthBits < 448 ? (448 - lengthBits) / 8 : (lengthBits > 448 ? (448 + (512 - lengthBits)) / 8 : 64);
-        }
-
-        constexpr auto sha1_padding_byte(const sha1_context& context)
-        {
-            return sha1_padding_byte( (context.message_length * 8) % 512 );
-        }
-
         constexpr sha1_context sha1_finalize_unpadded(const sha1_context& context)
         {
-            return sha1_append_padding(sha1_calc(sha1_append_padding(context, sha1_context::Size - context.buffer_length)).reset_buffer(),
-                                       sha1_padding_byte(context) + context.buffer_length - sha1_context::Size,
-                                       sha1_context::Size - context.buffer_length).append_length_buffer(context.message_length);
+            return sha1_calc(context.append_padding(context.free_space()))
+                    .reset_buffer()
+                    .append_padding(context.padding_byte() - context.free_space(), context.free_space())
+                    .append_length_buffer(context.message_length);
         }
     } // ~priv
 
@@ -389,9 +382,9 @@ namespace sha1_utils {
 
     constexpr sha1_context sha1_finalize(const sha1_context& context)
     {
-        return context.buffer_length + 8 + priv::sha1_padding_byte(context) <= sha1_context::Size ?
-                    priv::sha1_calc(context.append_padding(priv::sha1_padding_byte(context)).append_length_buffer(context.message_length))
-                  :priv::sha1_calc(priv::sha1_finalize_unpadded(context));
+        return priv::sha1_calc(context.buffer_length + 8 + context.padding_byte() <= sha1_context::Size ?
+                    context.append_padding(context.padding_byte()).append_length_buffer(context.message_length)
+                  :priv::sha1_finalize_unpadded(context));
     }
 
     template <size_t N, typename Char>
