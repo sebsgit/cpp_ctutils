@@ -159,7 +159,7 @@ static void test_sha1_internal_utils()
     static_assert(ctx.w[2] == 'c', "");
     static_assert(ctx.w[3] == 'd', "");
     static_assert(ctx.w[4] == '\0', "");
-    constexpr auto ctx_copied = sha1_utils::sha1_test_append_some(ctx, "uXYZy", 1, 3);
+    constexpr auto ctx_copied = sha1_utils::sha1_append_some(ctx, "uXYZy", 1, 3);
     assert(ctx_copied.buff_len == 7);
     static_assert(ctx_copied.w[0] == 'a', "");
     static_assert(ctx_copied.w[1] == 'b', "");
@@ -178,7 +178,7 @@ static void test_sha1_utils()
 
     constexpr auto ctx = sha1_utils::sha1_create_context("text to sha1");
     // verify intermediate data in sha1
-    constexpr auto X = sha1_utils::sha1_compute().add_context_round(ctx).add_rotate_round();
+    constexpr auto X = sha1_utils::priv::sha1_compute().add_context_round(ctx).add_rotate_round();
     static_assert(X.x[0] == 1952807028, "0");
     static_assert(X.x[1] == 544501536, "1");
     static_assert(X.x[2] == 1936220465, "2");
@@ -195,7 +195,7 @@ static void test_sha1_utils()
     static_assert(X.x[78] == 3945703551, "78");
     static_assert(X.x[79] == 1796382940, "79");
     // main sha1 computation routine
-    constexpr auto ctx_updated = sha1_utils::sha1_calc(ctx);
+    constexpr auto ctx_updated = sha1_utils::priv::sha1_calc(ctx);
     static_assert(ctx_updated.result[0] == 1921304193, "");
     static_assert(ctx_updated.result[1] == 2414806865, "");
     static_assert(ctx_updated.result[2] == 1370285663, "");
@@ -216,7 +216,7 @@ static void test_sha1_utils()
     static_assert(context_appended.result[2] == 1393575024, "");
     static_assert(context_appended.result[3] == 2380056992, "");
     static_assert(context_appended.result[4] == 554802719, "");
-    static_assert(sha1_utils::sha1_padding_byte(context_appended) == 53, "");
+    static_assert(sha1_utils::priv::sha1_padding_byte(context_appended) == 53, "");
     static_assert(context_appended.data_len*8 == 536, "");
     constexpr auto lbuff = sha1_utils::sha1_length_buffer(context_appended.data_len);
     static_assert(lbuff.data[0] == 0, "");
