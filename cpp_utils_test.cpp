@@ -291,8 +291,25 @@ static void test_sha1_utils()
     }
 }
 
+static void test_tuple()
+{
+    constexpr auto tuple = tuple_utils::make_tuple(1, 2, 3, 4);
+    static_assert(tuple.size() == 4, "");
+    static_assert(tuple.get(0) == 1, "");
+    static_assert(tuple.get(1) == 2, "");
+    static_assert(tuple.get(2) == 3, "");
+    static_assert(tuple.get(3) == 4, "");
+    constexpr auto tuple1 = tuple.add('X');
+    static_assert(tuple1.size() == 5, "");
+    static_assert(tuple1.get(4) == 'X', "");
+    constexpr auto tuple2 = tuple1.remove_first().remove_first();
+    static_assert(tuple2.size() == 3, "");
+    static_assert(tuple2.get(2) == 'X', "");
+}
+
 int main()
 {
+    test_tuple();
     test_type_list();
     test_string_parts();
     test_partition();

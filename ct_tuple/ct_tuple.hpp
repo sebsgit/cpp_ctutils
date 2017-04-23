@@ -21,6 +21,9 @@ public:
     constexpr auto add(K && k) const { return ct_tuple<T, K>(_t, std::forward<K>(k)); }
 
     static constexpr size_t size() { return 1; }
+
+    constexpr auto get(int) const { return this->_t; }
+
 private:
     const T _t;
 };
@@ -45,10 +48,16 @@ public:
     constexpr auto get() const { return _head; }
     constexpr auto tail() const { return _tail; }
 
+    constexpr auto get(int i) const { return i == 0 ? this->_head : this->_tail.get(i - 1); }
+
     template <typename K>
     constexpr auto add(K&& k) const
     {
         return ct_tuple<First, Rest..., K>(_head, _tail.add(std::forward<K>(k)));
+    }
+    constexpr auto remove_first() const
+    {
+        return ct_tuple<Rest ...>(this->_tail);
     }
 
     static constexpr size_t size() { return 1 + ct_tuple<Rest...>::size(); }
@@ -94,9 +103,9 @@ constexpr auto get(const Tuple& t)
     return priv::getter<Tuple, index>::get(t);
 }
 
-template <typename T>
-constexpr auto make_tuple(T&& t)
+template <typename ... T>
+constexpr auto make_tuple(T&& ... t)
 {
-    return ct_tuple<T>(std::forward<T>(t));
+    return ct_tuple<T ...>(std::forward<T>(t) ...);
 }
 }
