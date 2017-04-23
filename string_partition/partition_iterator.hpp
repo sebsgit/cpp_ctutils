@@ -81,8 +81,7 @@ public:
     template <typename Args>
     constexpr auto operator()(Args&& args) const
     {
-        visit_all<List, Visitor, index - 1>()(args);
-        return visit_at<List, Visitor, index>()(args);
+        return visit_all<List, Visitor, index - 1>()(args), visit_at<List, Visitor, index>()(args);
     }
 };
 }

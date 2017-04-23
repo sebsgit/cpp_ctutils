@@ -54,12 +54,12 @@ template <size_t ... index>
 class processed_part_t {
 public:
     template <typename Part>
-    constexpr processed_part_t(Part&& part)
+    constexpr processed_part_t(const Part& part)
         :_data{ process(part.data(index)) ... }
     {
 
     }
-    constexpr char process(const char c) const {
+    static constexpr char process(const char c) {
         return c == '1' ? '7' : c;
     }
     std::string to_string() const { return std::string({ _data[index] ... }); }

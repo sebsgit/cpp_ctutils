@@ -111,9 +111,8 @@ public:
     used with a @ref partition_iterator.
 */
 template <size_t part_size, size_t array_size_deduced>
-constexpr auto make_partition(const char (&data)[array_size_deduced])
+constexpr auto make_partition(const char (&)[array_size_deduced])
 {
-    (void)data;
     using type = typename priv::make_partition_t<part_size, array_size_deduced>::type;
     return type();
 }

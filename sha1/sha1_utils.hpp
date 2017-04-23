@@ -2,6 +2,7 @@
 
 #include <cinttypes>
 #include <type_traits>
+#include <algorithm>
 
 /// @TODO document and cleanup
 namespace sha1_utils {
@@ -20,15 +21,13 @@ namespace sha1_utils {
         class sha1_length_buffer {
         public:
             constexpr sha1_length_buffer(const uint64_t buffSize)
-                : lengthBits(buffSize * 8)
-                , data{ (unsigned char)(lengthBits >> 56), (unsigned char)(lengthBits >> 48),
-                        (unsigned char)(lengthBits >> 40), (unsigned char)(lengthBits >> 32),
-                        (unsigned char)(lengthBits >> 24), (unsigned char)(lengthBits >> 16),
-                        (unsigned char)(lengthBits >> 8), (unsigned char)(lengthBits >> 0) }
+                : data{ (unsigned char)(buffSize * 8 >> 56), (unsigned char)(buffSize * 8 >> 48),
+                        (unsigned char)(buffSize * 8 >> 40), (unsigned char)(buffSize * 8 >> 32),
+                        (unsigned char)(buffSize * 8 >> 24), (unsigned char)(buffSize * 8 >> 16),
+                        (unsigned char)(buffSize * 8 >> 8), (unsigned char)(buffSize * 8 >> 0) }
             {
 
             }
-            const int64_t lengthBits = 0;
             const unsigned char data[8] = {0};
         };
     }
@@ -175,7 +174,7 @@ namespace sha1_utils {
             constexpr sha1_compute() {}
 
             template <typename Ctx>
-            constexpr uint32_t get_x(const Ctx& context, size_t i) const
+            static constexpr uint32_t get_x(const Ctx& context, size_t i)
             {
                 return (((uint32_t)context.buffer[i * 4] << 24) | ((uint32_t)context.buffer[i * 4 + 1] << 16) | ((uint32_t)context.buffer[i * 4 + 2] << 8) | ((uint32_t)context.buffer[i * 4 + 3]));
             }
@@ -346,15 +345,18 @@ namespace sha1_utils {
             return sha1_update(source, perform_loop<perform_loop_base::sha1_rounds>(source, sha1_compute().add_context_round(source).add_rotate_round()).calculate()._ctx_update);
         }
 
+        template <typename T, typename U>
+        constexpr static auto min(const T t, const U u) { return t < u ? t : u; }
+
         template <size_t N>
         constexpr sha1_context sha1_add_data_helper(const sha1_context& context, const char (&array)[N], const size_t array_offset, const size_t copy_size)
         {
             return (context.buffer_length + copy_size) < sha1_context::Size ?
                     context.append(array, array_offset, copy_size)
-                  : sha1_add_data_helper( sha1_calc(context.append(array, array_offset, std::min(context.free_space(), copy_size) )).reset_buffer(),
+                  : sha1_add_data_helper( sha1_calc(context.append(array, array_offset, min(context.free_space(), copy_size) )).reset_buffer(),
                                      array,
-                                     array_offset + std::min(context.free_space(), copy_size),
-                                     copy_size - std::min(context.free_space(), copy_size));
+                                     array_offset + min(context.free_space(), copy_size),
+                                     copy_size - min(context.free_space(), copy_size));
         }
 
         template <size_t N> constexpr sha1_context sha1_add_data(const sha1_context& context, const char (&array)[N]);
