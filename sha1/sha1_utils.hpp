@@ -170,7 +170,6 @@ namespace sha1_utils {
     namespace priv {
         class sha1_compute {
         public:
-
             constexpr sha1_compute() {}
 
             template <typename Ctx>
@@ -185,9 +184,13 @@ namespace sha1_utils {
             {
             }
 
-            template <size_t ... index_16, size_t ... index_64>
-            constexpr sha1_compute(const sha1_compute& source, std::index_sequence<index_16...>, std::index_sequence<index_64...>)
-               :x{ source.x[index_16] ..., rotate_left_32(x[index_64 + 16 -3] ^ x[index_64 + 16 -8] ^ x[index_64 + 16 -14] ^ x[index_64 + 16 -16], 1) ... }
+            template <size_t ... index_80>
+            constexpr sha1_compute(const sha1_compute& source, std::index_sequence<index_80...>)
+               :x{ get_next_helper(source.x[0],source.x[1],source.x[2],source.x[3],
+                                   source.x[4],source.x[5],source.x[6],source.x[7],
+                                   source.x[8],source.x[9],source.x[10],source.x[11],
+                                   source.x[12],source.x[13],source.x[14],source.x[15],
+                                   index_80) ...}
             {
 
             }
@@ -200,7 +203,7 @@ namespace sha1_utils {
 
             constexpr sha1_compute add_rotate_round() const
             {
-                return sha1_compute(*this, std::make_index_sequence<16>(), std::make_index_sequence<64>());
+                return sha1_compute(*this, std::make_index_sequence<80>());
             }
 
             template <typename T>
@@ -211,6 +214,19 @@ namespace sha1_utils {
             }
 
             const uint32_t x[80] = {0};
+
+        private:
+            static constexpr uint32_t get_next_helper(uint32_t x0, uint32_t x1, uint32_t x2, uint32_t x3,
+                                                       uint32_t x4, uint32_t x5, uint32_t x6, uint32_t x7,
+                                                       uint32_t x8, uint32_t x9, uint32_t x10, uint32_t x11,
+                                                       uint32_t x12, uint32_t x13, uint32_t x14, uint32_t x15,
+                                                       size_t i)
+             {
+                 return i == 0 ? x0 : get_next_helper(x1, x2, x3, x4,
+                                                      x5, x6, x7, x8,
+                                                      x9, x10, x11, x12,
+                                                      x13, x14, x15, rotate_left_32(x13 ^ x8 ^ x2 ^ x0, 1), i - 1);
+             }
 
         };
 
