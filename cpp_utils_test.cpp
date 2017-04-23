@@ -1,3 +1,4 @@
+#include "ctml/ctml/int_sequence_generator.hpp"
 #include "string_partition/string_part.hpp"
 #include "string_partition/type_list.hpp"
 #include "string_partition/string_partition.hpp"
@@ -299,17 +300,43 @@ static void test_tuple()
     static_assert(tuple.get(1) == 2, "");
     static_assert(tuple.get(2) == 3, "");
     static_assert(tuple.get(3) == 4, "");
-    constexpr auto tuple1 = tuple.add('X');
+    constexpr auto tuple1 = tuple.add(10);
     static_assert(tuple1.size() == 5, "");
-    static_assert(tuple1.get(4) == 'X', "");
+    static_assert(tuple1.get(4) == 10, "");
     constexpr auto tuple2 = tuple1.remove_first().remove_first();
     static_assert(tuple2.size() == 3, "");
-    static_assert(tuple2.get(2) == 'X', "");
+    static_assert(tuple2.get(2) == 10, "");
+}
+
+static void test_int_sequence_generator()
+{
+
+    class fibo {
+    public:
+        static constexpr int next(int a, int b)
+        {
+            return a + b;
+        }
+    };
+
+    using gen = ctml::int_sequence_generator<fibo, 0, 1>;
+    static_assert(gen::at(0) == 0, "");
+    static_assert(gen::at(1) == 1, "");
+    static_assert(gen::at(2) == 1, "");
+    static_assert(gen::at(3) == 2, "");
+    static_assert(gen::at(4) == 3, "");
+    static_assert(gen::at(5) == 5, "");
+    static_assert(gen::at(6) == 8, "");
+    static_assert(gen::at(7) == 13, "");
+    static_assert(gen::at(8) == 21, "");
+    static_assert(gen::at(9) == 34, "");
+    static_assert(gen::at(17) == 1597, "");
 }
 
 int main()
 {
     test_tuple();
+    test_int_sequence_generator();
     test_type_list();
     test_string_parts();
     test_partition();
