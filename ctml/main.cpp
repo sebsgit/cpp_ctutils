@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <type_traits>
 
 static void testSequenceIterator() {
     class plus_one {
@@ -15,12 +16,12 @@ static void testSequenceIterator() {
     };
     using zero = ctml::sequence_iterator<plus_one>;
     using one = zero::next;
-    static_assert(std::is_same<int, one::type>::value);
-    static_assert(one::value == 1);
-    static_assert(one::next::value == 2);
-    static_assert(one::next::next::value == 3);
-    static_assert(one::next::next::next::value == 4);
-    static_assert(ctml::advance<ctml::sequence_iterator<plus_one>, 100>::value == 100);
+    static_assert(std::is_same<int, one::type>::value, "");
+    static_assert(one::value == 1, "");
+    static_assert(one::next::value == 2, "");
+    static_assert(one::next::next::value == 3, "");
+    static_assert(one::next::next::next::value == 4, "");
+    static_assert(ctml::advance<ctml::sequence_iterator<plus_one>, 100>::value == 100, "");
     static_assert(ctml::accumulate<ctml::sequence_iterator<plus_one>, 2>::value == 3, "0 + 1 + 2");
     static_assert(ctml::accumulate<ctml::sequence_iterator<plus_one>, 10>::value == 55, "0 + 1 + 2 + ... + 10");
     static_assert(ctml::mean<ctml::sequence_iterator<plus_one>, 10>::value == 5.5, "55 / 10");
@@ -32,13 +33,13 @@ static void testSequenceIterator() {
         }
     };
     using one_1 = ctml::sequence_iterator<times_two, 1>;
-    static_assert(std::is_same<unsigned, one_1::type>::value);
-    static_assert(one_1::value == 1);
-    static_assert(one_1::next::value == 2);
-    static_assert(one_1::next::next::value == 4);
-    static_assert(one_1::next::next::next::value == 8);
-    static_assert(ctml::advance<one_1, 0>::value == 1);
-    static_assert(ctml::advance<one_1, 10>::value == 1024);
+    static_assert(std::is_same<unsigned, one_1::type>::value, "");
+    static_assert(one_1::value == 1, "");
+    static_assert(one_1::next::value == 2, "");
+    static_assert(one_1::next::next::value == 4, "");
+    static_assert(one_1::next::next::next::value == 8, "");
+    static_assert(ctml::advance<one_1, 0>::value == 1, "");
+    static_assert(ctml::advance<one_1, 10>::value == 1024, "");
 
     class div_by_10 {
     public:
@@ -47,11 +48,11 @@ static void testSequenceIterator() {
         }
     };
     using thousand = ctml::sequence_iterator<div_by_10, 1000>;
-    static_assert(std::is_same<short, thousand::type>::value);
-    static_assert(thousand::value == 1000);
-    static_assert(thousand::next::value == 100);
-    static_assert(thousand::next::next::value == 10);
-    static_assert(thousand::next::next::next::value == 1);
+    static_assert(std::is_same<short, thousand::type>::value, "");
+    static_assert(thousand::value == 1000, "");
+    static_assert(thousand::next::value == 100, "");
+    static_assert(thousand::next::next::value == 10, "");
+    static_assert(thousand::next::next::next::value == 1, "");
 }
 
 template <typename Dist, int steps>
@@ -69,15 +70,15 @@ void testDistribution(const std::string& name)
 }
 
 int main(int argc, char *argv[]) {
-    static_assert(ctml::pow<2>(2) == 4);
-    static_assert(ctml::pow<3>(2.2) == 2.2 * 2.2 * 2.2);
-    static_assert(ctml::pow<0>(5.2) == 1);
-    static_assert(ctml::pow<-2>(2.2) == 1.0 / (2.2 * 2.2));
+    static_assert(ctml::pow<2>(2) == 4, "");
+    static_assert(ctml::pow<3>(2.2) == 2.2 * 2.2 * 2.2, "");
+    static_assert(ctml::pow<0>(5.2) == 1, "");
+    static_assert(ctml::pow<-2>(2.2) == 1.0 / (2.2 * 2.2), "");
     
     // std::pow not a constexpr in clang 3.8
     #ifndef __clang__
-    static_assert(std::pow(2, 2) == 4);
-    static_assert(std::pow(2.2, -1) == 1.0 / (2.2));
+    static_assert(std::pow(2, 2) == 4, "");
+    static_assert(std::pow(2.2, -1) == 1.0 / (2.2), "");
     #endif
     
     static_assert(ctml::random_generators::blum_blum_shub<int>()(2) > 0, "bbs");
@@ -95,7 +96,7 @@ int main(int argc, char *argv[]) {
     std::cout << ctml::advance<bbs_seq, 6>::value << ' ';
     std::cout << ctml::advance<bbs_seq, 7>::value << '\n';
 
-	constexpr int steps = 350;
+    constexpr int steps = 350;
     struct uniform_params {
         static constexpr double a() { return 0.0; }
         static constexpr double b() { return 1.0; }

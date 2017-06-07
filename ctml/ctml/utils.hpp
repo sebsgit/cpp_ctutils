@@ -39,8 +39,8 @@ namespace ctml {
     template <typename T>
     class random_seed {
     private:
+        static constexpr char t[] = __TIME__;
         static constexpr T value_helper() {
-            constexpr char t[] = __TIME__;
             return (t[0] - '0') * 100000 + (t[1] - '0') * 10000 + (t[3] - '0') * 1000  + (t[4] - '0') + ((t[6] - '0') % 100) + (t[7] - '0');
         }
     public:
@@ -54,8 +54,6 @@ namespace ctml {
     */
     template <typename Range>
     constexpr long double normalize(const long double& value) {
-        constexpr auto min = Range::min();
-        constexpr auto max = Range::max();
-        return ((value - min) / (1.0l * (max - min)));
+        return ((value - Range::min()) / (1.0l * (Range::max() - Range::min())));
     }
 }
