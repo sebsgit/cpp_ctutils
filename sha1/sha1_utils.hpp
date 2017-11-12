@@ -408,7 +408,7 @@ namespace sha1_utils {
     template <size_t N, typename Char>
     constexpr sha1_result sha1(const Char (&array)[N])
     {
-        return sha1_result(sha1_finalize(sha1_add_data(sha1_context(), array)));
+        return sha1_result(sha1_finalize(sha1_create_context(array)));
     }
 
 }
