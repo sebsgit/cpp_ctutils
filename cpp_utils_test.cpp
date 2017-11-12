@@ -87,7 +87,7 @@ private:
     template <typename Part>
     static constexpr auto make_processed_part(Part&& part)
     {
-        return make_processed_part_helper(std::forward<Part>(part), std::make_index_sequence<part.size()>());
+        return make_processed_part_helper(std::forward<Part>(part), std::make_index_sequence<Part::size()>());
     }
 public:
     template <typename Part>

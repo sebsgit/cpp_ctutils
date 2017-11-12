@@ -21,7 +21,7 @@ private:
 
     static constexpr int at(int i, const Tuple& t)
     {
-        return i == 0 ? t.get(0) : at(i - 1, expand_tuple(t, std::make_index_sequence<t.size()>()));
+        return i == 0 ? t.get(0) : at(i - 1, expand_tuple(t, std::make_index_sequence<Tuple::size()>()));
     }
 public:
     /**
