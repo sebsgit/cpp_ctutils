@@ -91,13 +91,19 @@ private:
     };
 };
 
+//TODO: move to internal helper namespace
 template <size_t size>
 class byte_pack {
-    static_assert(size > 0);
+    static_assert(size == 4 || size == 16);
 private:
     template <size_t ... index>
     constexpr byte_pack x_or_helper(const byte_pack& other, std::index_sequence<index...>) const noexcept {
         return byte_pack{ _data[index] ^ other._data[index] ... };
+    }
+    template <size_t ... index_seq>
+    constexpr byte_pack set_helper(size_t index, uint8_t value, std::index_sequence<index_seq...>) const
+    {
+        return byte_pack{ index_seq == index ? value : _data[index_seq] ...  };
     }
 public:
     template <typename ... Args>
@@ -110,12 +116,27 @@ public:
     constexpr auto operator[](size_t index) const noexcept {
         return _data[index];
     }
+    constexpr byte_pack set(size_t index, uint8_t value) const
+    {
+        return set_helper(index, value, std::make_index_sequence<size>());
+    }
     constexpr auto operator ()(size_t row_number, size_t column_number) const noexcept
     {
         return _data[row_number + 4 * column_number];
     }
+    constexpr byte_pack set(size_t row_number, size_t column_number, uint8_t value) const
+    {
+        return this->set(row_number + 4 * column_number, value);
+    }
     constexpr byte_pack x_or(const byte_pack& other) const noexcept {
         return x_or_helper(other, std::make_index_sequence<size>());
+    }
+    constexpr byte_pack shift_row_left(size_t row_number) const
+    {
+        return set(row_number, 0, (*this)(row_number, 1))
+                .set(row_number, 1, (*this)(row_number, 2))
+                .set(row_number, 2, (*this)(row_number, 3))
+                .set(row_number, 3, (*this)(row_number, 0));
     }
 private:
     const std::array<uint8_t, size> _data;

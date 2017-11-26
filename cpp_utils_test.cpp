@@ -161,6 +161,9 @@ static void test_aes_utils() {
       static_assert(sboxed[1] == aes_utils::s_box::value(test_16[1]), "");
       static_assert(sboxed[2] == aes_utils::s_box::value(test_16[2]), "");
       static_assert(sboxed[3] == aes_utils::s_box::value(test_16[3]), "");
+      constexpr auto shifted = sboxed.shift_row_left(0);
+      static_assert(shifted[0] == sboxed[4], "");
+      //TODO generate test data...
   }
   for (int i = 0; i < 256; ++i)
     assert(aes_utils::s_box::value(aes_utils::s_box::inverse(i)) == i);
