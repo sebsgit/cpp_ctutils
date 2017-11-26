@@ -94,7 +94,7 @@ private:
 //TODO: move to internal helper namespace
 template <size_t size>
 class byte_pack {
-    static_assert(size == 4 || size == 16);
+    static_assert(size == 4 || size == 16 || size == 20);
 private:
     template <size_t ... index>
     constexpr byte_pack x_or_helper(const byte_pack& other, std::index_sequence<index...>) const noexcept {
@@ -104,6 +104,16 @@ private:
     constexpr byte_pack set_helper(size_t index, uint8_t value, std::index_sequence<index_seq...>) const
     {
         return byte_pack{ index_seq == index ? value : _data[index_seq] ...  };
+    }
+    template <typename ... Boolean>
+    static constexpr bool all_of(Boolean ... b)
+    {
+        return (static_cast<bool>(b) && ...);
+    }
+    template <size_t ... index_seq>
+    static constexpr bool equal_helper(const byte_pack& left, const byte_pack& right, std::index_sequence<index_seq...>)
+    {
+        return all_of(left[index_seq] == right[index_seq] ...);
     }
 public:
     template <typename ... Args>
@@ -137,6 +147,14 @@ public:
                 .set(row_number, 1, (*this)(row_number, 2))
                 .set(row_number, 2, (*this)(row_number, 3))
                 .set(row_number, 3, (*this)(row_number, 0));
+    }
+    friend constexpr bool operator== (const byte_pack& left, const byte_pack& right)
+    {
+        return equal_helper(left, right, std::make_index_sequence<size>());
+    }
+    friend constexpr bool operator != (const byte_pack& left, const byte_pack& right)
+    {
+        return !(left == right);
     }
 private:
     const std::array<uint8_t, size> _data;

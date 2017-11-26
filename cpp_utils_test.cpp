@@ -156,14 +156,15 @@ static void test_aes_utils() {
 
       constexpr aes_utils::quad_word test_16{0x51, 0x59, 0x2, 0x7a, 0xf4, 0x81, 0x1, 0x0,
                                             0x66, 0x12, 0xba, 0xcd, 0x7d, 0x71, 0x22, 0x6};
+      constexpr aes_utils::quad_word test_16_shifted_left{0xf4, 0x59, 0x2, 0x7a, 0x66, 0x81, 0x1, 0,
+                                                          0x7d, 0x12, 0xba, 0xcd, 0x51, 0x71, 0x22, 0x6};
       constexpr aes_utils::quad_word sboxed = aes_utils::aes_context<128>::s_box_replace(test_16);
       static_assert(sboxed[0] == aes_utils::s_box::value(test_16[0]), "");
       static_assert(sboxed[1] == aes_utils::s_box::value(test_16[1]), "");
       static_assert(sboxed[2] == aes_utils::s_box::value(test_16[2]), "");
       static_assert(sboxed[3] == aes_utils::s_box::value(test_16[3]), "");
-      constexpr auto shifted = sboxed.shift_row_left(0);
-      static_assert(shifted[0] == sboxed[4], "");
-      //TODO generate test data...
+      constexpr auto shifted = test_16.shift_row_left(0);
+      static_assert(shifted == test_16_shifted_left, "");
   }
   for (int i = 0; i < 256; ++i)
     assert(aes_utils::s_box::value(aes_utils::s_box::inverse(i)) == i);
