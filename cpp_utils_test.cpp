@@ -136,6 +136,32 @@ static void test_partition_transform() {
 static void test_aes_utils() {
 #if __cplusplus >= 201703L
   std::cout << "with AES\n";
+  {
+      constexpr aes_utils::byte_pack<4> bytes{0x1, 0x2, 0x4, 0x7};
+      static_assert(bytes[0] == 0x1, "");
+      static_assert(bytes[1] == 0x2, "");
+      static_assert(bytes[2] == 0x4, "");
+      static_assert(bytes[3] == 0x7, "");
+      constexpr aes_utils::byte_pack<4> copied(bytes);
+      static_assert(copied[0] == 0x1, "");
+      static_assert(copied[1] == 0x2, "");
+      static_assert(copied[2] == 0x4, "");
+      static_assert(copied[3] == 0x7, "");
+
+      constexpr auto x_or = bytes.x_or(copied);
+      static_assert(x_or[0] == 0, "");
+      static_assert(x_or[1] == 0, "");
+      static_assert(x_or[2] == 0, "");
+      static_assert(x_or[3] == 0, "");
+
+      constexpr aes_utils::quad_word test_16{0x51, 0x59, 0x2, 0x7a, 0xf4, 0x81, 0x1, 0x0,
+                                            0x66, 0x12, 0xba, 0xcd, 0x7d, 0x71, 0x22, 0x6};
+      constexpr aes_utils::quad_word sboxed = aes_utils::aes_context<128>::s_box_replace(test_16);
+      static_assert(sboxed[0] == aes_utils::s_box::value(test_16[0]), "");
+      static_assert(sboxed[1] == aes_utils::s_box::value(test_16[1]), "");
+      static_assert(sboxed[2] == aes_utils::s_box::value(test_16[2]), "");
+      static_assert(sboxed[3] == aes_utils::s_box::value(test_16[3]), "");
+  }
   for (int i = 0; i < 256; ++i)
     assert(aes_utils::s_box::value(aes_utils::s_box::inverse(i)) == i);
   static_assert(
@@ -148,7 +174,7 @@ static void test_aes_utils() {
   static_assert(word[1] == 's', "");
   static_assert(word[2] == 't', "");
   static_assert(word[3] == '_', "");
-  constexpr auto key_new = key.set_word<3>(aes_utils::four_bytes('x', 'y', 'z', 'w'));
+  constexpr auto key_new = key.set_word<3>(aes_utils::word('x', 'y', 'z', 'w'));
   static_assert(key_new.get_word(0)[0] == 't', "");
   static_assert(key_new.get_word(0)[1] == 'e', "");
   static_assert(key_new.get_word(0)[2] == 's', "");

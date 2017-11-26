@@ -6,6 +6,7 @@
 #include <utility>
 #include <ostream>
 #include <iterator>
+#include <array>
 
 /**
     Namespace contains utilities used in AES encryption algorithm.
@@ -90,31 +91,39 @@ private:
     };
 };
 
-// TODO: docs
-class four_bytes {
+template <size_t size>
+class byte_pack {
+    static_assert(size > 0);
+private:
+    template <size_t ... index>
+    constexpr byte_pack x_or_helper(const byte_pack& other, std::index_sequence<index...>) const noexcept {
+        return byte_pack{ _data[index] ^ other._data[index] ... };
+    }
 public:
-    constexpr four_bytes(uint8_t a, uint8_t b, uint8_t c, uint8_t d)
-        : _data{ a, b, c, d }
+    template <typename ... Args>
+    constexpr byte_pack(Args ... args)
+        :_data{ static_cast<uint8_t>(args) ... }
     {}
-    template <typename ByteType, size_t size>
-    constexpr four_bytes(const ByteType (&array)[size], const size_t offset)
-        :_data{ array[offset], array[offset + 1], array[offset + 2], array[offset + 3] }
-    {}
-    constexpr four_bytes(const four_bytes& other)
-        :_data{ other._data[0], other._data[1], other._data[2], other._data[3] }
+    constexpr byte_pack(const byte_pack& other) noexcept
+        :_data(other._data)
     {}
     constexpr auto operator[](size_t index) const noexcept {
         return _data[index];
     }
-    constexpr four_bytes x_or(const four_bytes& other) const {
-        return four_bytes(_data[0] ^ other._data[0],
-                _data[1] ^ other._data[1],
-                _data[2] ^ other._data[2],
-                _data[3] ^ other._data[3]);
+    constexpr auto operator ()(size_t row_number, size_t column_number) const noexcept
+    {
+        return _data[row_number + 4 * column_number];
+    }
+    constexpr byte_pack x_or(const byte_pack& other) const noexcept {
+        return x_or_helper(other, std::make_index_sequence<size>());
     }
 private:
-    const uint8_t _data[4];
+    const std::array<uint8_t, size> _data;
 };
+
+// TODO: docs
+using word = byte_pack<4>;
+using quad_word = byte_pack<16>;
 
 template <size_t key_length>
 class aes_key {
@@ -132,8 +141,8 @@ private:
             return 240;
     }
 
-    static constexpr four_bytes rotate_word(const four_bytes& data, uint8_t rcon_index) {
-        return four_bytes(s_box::value(data[1]) ^ rcon_table::at(rcon_index),
+    static constexpr word rotate_word(const word& data, uint8_t rcon_index) {
+        return word(s_box::value(data[1]) ^ rcon_table::at(rcon_index),
                 s_box::value(data[2]),
                 s_box::value(data[3]),
                 s_box::value(data[0]));
@@ -143,9 +152,9 @@ private:
     explicit constexpr aes_key(const CharType(&array)[length], std::index_sequence<index_seq...>)
         : _data{static_cast<unsigned char>(array[index_seq]) ...}
     {}
-    template <size_t length, typename CharType, size_t ... prefix_seq, size_t ... postfix_seq>
-    explicit constexpr aes_key(const CharType(&array)[length], const four_bytes& bytes, std::index_sequence<prefix_seq...>, std::index_sequence<postfix_seq...>)
-        : _data{ static_cast<unsigned char>(array[prefix_seq]) ..., bytes[0], bytes[1], bytes[2], bytes[3], array[4 + sizeof ... (prefix_seq) + postfix_seq] ... }
+    template <size_t length, typename CharType, size_t byte_count, size_t ... prefix_seq, size_t ... byte_seq, size_t ... postfix_seq>
+    explicit constexpr aes_key(const CharType(&array)[length], const byte_pack<byte_count>& bytes, std::index_sequence<prefix_seq...>, std::index_sequence<byte_seq ...>, std::index_sequence<postfix_seq...>)
+        : _data{ static_cast<unsigned char>(array[prefix_seq]) ..., bytes[byte_seq] ..., array[byte_count + sizeof ... (prefix_seq) + postfix_seq] ... }
     {}
     //TODO: hard-coded to 176
     template <size_t p, size_t i>
@@ -154,7 +163,7 @@ private:
         if constexpr (p == 176)
             return key;
         else {
-            const four_bytes b = (p % 16 == 0) ? rotate_word(key.get_word(p - 4), i) : key.get_word(p - 4);
+            const word b = (p % 16 == 0) ? rotate_word(key.get_word(p - 4), i) : key.get_word(p - 4);
             const auto new_key = key.set_word<p>(key.get_word(p - 16).x_or(b));
             return expand_helper<p + 4, (p % 16 == 0) ? i + 1 : i>(new_key);
         }
@@ -168,13 +177,25 @@ public:
         return aes_key<key_size>(array, std::make_index_sequence<length>());
     }
 
-    constexpr four_bytes get_word(size_t offset) const
+    constexpr word get_word(size_t offset) const
     {
-        return four_bytes(_data[offset], _data[offset + 1], _data[offset + 2], _data[offset + 3]);
+        return word(_data[offset], _data[offset + 1], _data[offset + 2], _data[offset + 3]);
+    }
+    constexpr quad_word get_q_word(size_t offset) const
+    {
+        return quad_word(_data[offset], _data[offset + 1], _data[offset + 2], _data[offset + 3],
+                _data[offset + 4], _data[offset + 5], _data[offset + 6], _data[offset + 7],
+                _data[offset + 8], _data[offset + 9], _data[offset + 10], _data[offset + 11],
+                _data[offset + 12], _data[offset + 13], _data[offset + 14], _data[offset + 15]);
     }
     template <size_t offset>
-    constexpr aes_key set_word(const four_bytes& bytes) const {
-        return aes_key<key_size>(_data, bytes, std::make_index_sequence<offset>(), std::make_index_sequence<data_size - 4 - offset>());
+    constexpr aes_key set_word(const word& bytes) const {
+        return aes_key<key_size>(_data, bytes, std::make_index_sequence<offset>(), std::make_index_sequence<4>(), std::make_index_sequence<data_size - 4 - offset>());
+    }
+    template <size_t offset>
+    constexpr aes_key set_q_word(const quad_word& bytes) const
+    {
+        return aes_key<key_size>(_data, bytes, std::make_index_sequence<offset>(), std::make_index_sequence<16>(), std::make_index_sequence<data_size - 16 - offset>());
     }
 
     constexpr auto expand() const
@@ -199,5 +220,36 @@ public:
 
 private:
     const unsigned char _data[data_size] = 0;
+};
+
+template <size_t key_length>
+class aes_context {
+private:
+    static constexpr size_t number_of_rounds() {
+        //TODO: hard-coded to aes-128
+        return 10;
+    }
+    template <size_t ... index_seq>
+    static constexpr quad_word substitute_helper(const quad_word& data, std::index_sequence<index_seq...>) noexcept
+    {
+        return quad_word(s_box::value(data[index_seq]) ...);
+    }
+public:
+    static constexpr quad_word s_box_replace(const quad_word& data) noexcept
+    {
+        return substitute_helper(data, std::make_index_sequence<16>());
+    }
+
+    constexpr aes_context(const aes_key<key_length>& key)
+        :_key(key)
+    {}
+    //TODO: private
+    template <size_t round_number>
+    quad_word add_round_key(const quad_word& data) const
+    {
+        return data.x_or(this->_key.get_q_word(round_number * 16));
+    }
+private:
+    const aes_key<key_length> _key;
 };
 }
