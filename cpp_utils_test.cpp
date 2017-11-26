@@ -187,7 +187,7 @@ static void test_aes_utils() {
   static_assert(key_new.get_word(4)[1] == 'z', "");
   static_assert(key_new.get_word(4)[2] == 'w', "");
   static_assert(key_new.get_word(4)[3] == 'y', "");
-  const auto expanded_key = key_new.expand();
+  constexpr auto expanded_key = key_new.expand();
   const uint8_t expanded_key_data_start[] = {
     0x74, 0x65, 0x73, 0x78, 0x79, 0x7a, 0x77, 0x79,
     0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -201,6 +201,15 @@ static void test_aes_utils() {
   };
   assert(std::search(expanded_key.begin(), expanded_key.end(), std::begin(expanded_key_data_start), std::end(expanded_key_data_start)) == expanded_key.begin());
   assert(std::abs(std::distance(expanded_key.end(), std::search(expanded_key.begin(), expanded_key.end(), std::begin(expanded_key_data_end), std::end(expanded_key_data_end)))) == sizeof(expanded_key_data_end));
+
+  constexpr aes_utils::quad_word test_16{0x51, 0x59, 0x2, 0x7a, 0xf4, 0x81, 0x1, 0x0,
+                                        0x66, 0x12, 0xba, 0xcd, 0x7d, 0x71, 0x22, 0x6};
+  constexpr aes_utils::quad_word encrypted_data{0xfa, 0xfa, 0xb8, 0xd8, 0x26, 0x3, 0xc4, 0x9b,
+                                                0x15, 0x91, 0x2d, 0x88, 0x4d, 0xa8, 0x98, 0x92};
+  constexpr aes_utils::aes_context<128> context = aes_utils::aes_context<128>(expanded_key);
+  constexpr auto secret = context.encrypt(test_16);
+  static_assert(secret != test_16, "");
+  static_assert(secret == encrypted_data, "");
 #endif
 }
 

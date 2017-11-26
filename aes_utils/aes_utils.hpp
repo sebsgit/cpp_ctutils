@@ -200,6 +200,16 @@ public:
                 .set(row_number, 2, (*this)(row_number, 3))
                 .set(row_number, 3, (*this)(row_number, 0));
     }
+    template <size_t count>
+    constexpr byte_pack shift_row_left(size_t row_number) const
+    {
+        if constexpr (count == 0)
+            return *this;
+        else {
+            const auto tmp = this->shift_row_left(row_number);
+            return tmp.template shift_row_left<count - 1>(row_number);
+        }
+    }
     friend constexpr bool operator== (const byte_pack& left, const byte_pack& right)
     {
         return equal_helper(left, right, std::make_index_sequence<size>());
@@ -207,6 +217,14 @@ public:
     friend constexpr bool operator != (const byte_pack& left, const byte_pack& right)
     {
         return !(left == right);
+    }
+    friend std::ostream& operator << (std::ostream& out, const byte_pack& data)
+    {
+        out << '{' << std::hex;
+        for (auto c : data._data)
+            out << static_cast<int>(c) << ' ';
+        out << std::dec << '}';
+        return out;
     }
 private:
     const std::array<uint8_t, size> _data;
@@ -332,6 +350,21 @@ private:
                 ^ s_box::multiply_galois(c, data(2, column))
                 ^ s_box::multiply_galois(d, data(3, column));
     }
+    template <size_t index>
+    constexpr quad_word encrypt_loop(const quad_word& data) const
+    {
+        return add_round_key<index>(column_mix(row_shift(s_box_replace(data))));
+    }
+    template <size_t round, size_t max_rounds>
+    constexpr quad_word encrypt_helper(const quad_word& data) const
+    {
+        if constexpr (round == 0)
+            return encrypt_helper<1, max_rounds>(add_round_key<0>(data));
+        else if constexpr (round < max_rounds)
+            return encrypt_helper<round + 1, max_rounds>(encrypt_loop<round>(data));
+        else
+            return add_round_key<round>(row_shift(s_box_replace(data)));
+    }
 public:
     static constexpr quad_word s_box_replace(const quad_word& data) noexcept
     {
@@ -344,14 +377,26 @@ public:
             .set(2, column, col_mix_helper(data, column, 0x1, 0x1, 0x2, 0x3))
             .set(3, column, col_mix_helper(data, column, 0x3, 0x1, 0x1, 0x2));
     }
+    static constexpr quad_word column_mix(const quad_word &data) noexcept
+    {
+        return column_mix(column_mix(column_mix(column_mix(data, 0), 1), 2), 3);
+    }
+    static constexpr quad_word row_shift(const quad_word& data) noexcept
+    {
+        return data.shift_row_left<1>(1).shift_row_left<2>(2).shift_row_left<3>(3);
+    }
     constexpr aes_context(const aes_key<key_length>& key)
         :_key(key)
     {}
     //TODO: private
     template <size_t round_number>
-    quad_word add_round_key(const quad_word& data) const
+    constexpr quad_word add_round_key(const quad_word& data) const
     {
         return data.x_or(this->_key.get_q_word(round_number * 16));
+    }
+    constexpr quad_word encrypt(const quad_word& data) const
+    {
+        return encrypt_helper<0, number_of_rounds()>(data);
     }
 private:
     const aes_key<key_length> _key;
