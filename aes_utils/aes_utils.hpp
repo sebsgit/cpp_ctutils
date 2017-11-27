@@ -385,6 +385,7 @@ public:
     {
         return data.shift_row_left<1>(1).shift_row_left<2>(2).shift_row_left<3>(3);
     }
+
     constexpr aes_context(const aes_key<key_length>& key)
         :_key(key)
     {}

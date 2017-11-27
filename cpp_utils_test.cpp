@@ -210,6 +210,20 @@ static void test_aes_utils() {
   constexpr auto secret = context.encrypt(test_16);
   static_assert(secret != test_16, "");
   static_assert(secret == encrypted_data, "");
+
+  constexpr char string[] = "data to encrypt test test test";
+  using partition_type = decltype(string_partition::make_partition<16>(string));
+  constexpr auto partition = partition_transform::convert<partition_type>(string);
+  std::cout << tuple_utils::get<0>(partition).to_string() << '\n';
+  constexpr auto array = tuple_utils::get<1>(partition).to_array();
+  std::copy(std::begin(array), std::end(array), std::ostream_iterator<char>(std::cout, ""));
+  std::cout << '\n';
+    /*
+    TODO:
+        - const char* -> std::array<uint8_t, sizeof(str)>
+        - encrypt std::array<size> -> std::array<size>
+        - runtime decrypt
+    */
 #endif
 }
 

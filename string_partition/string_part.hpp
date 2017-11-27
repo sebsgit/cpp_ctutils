@@ -3,6 +3,7 @@
 #include <utility>
 #include <cstddef>
 #include <string>
+#include <array>
 
 /**
     Module provides classes representing single elements in the compile time string partition.
@@ -19,6 +20,11 @@ namespace string_part {
 template <size_t offset, size_t ... index>
 class string_part {
     static_assert(sizeof ... (index) > 0 , "can't create null sequence");
+    template <size_t ... index_seq>
+    constexpr auto to_array_helper(std::index_sequence<index_seq...>) const
+    {
+        return std::array<uint8_t, sizeof ... (index_seq)>{static_cast<uint8_t>(this->_data[index_seq]) ...};
+    }
 public:
     /**
         Initializes this string part using a given character array.
@@ -42,6 +48,11 @@ public:
     std::string to_string() const
     {
         return std::string({_data[index] ...});
+    }
+    /// @return this string part as array of bytes
+    constexpr std::array<uint8_t, sizeof ... (index)> to_array() const
+    {
+        return to_array_helper(std::make_index_sequence<sizeof ... (index)>());
     }
 private:
     const char _data[sizeof ... (index) + 1];
@@ -68,6 +79,13 @@ namespace priv {
 */
 template <size_t offset, size_t Size, size_t ... index>
 class filled_string_part {
+    static constexpr auto part_size = priv::max(sizeof ... (index) + 1, Size);
+
+    template <size_t ... index_seq>
+    constexpr auto to_array_helper(std::index_sequence<index_seq...>) const
+    {
+        return std::array<uint8_t, sizeof ... (index_seq)>{static_cast<uint8_t>(this->_data[index_seq]) ...};
+    }
 public:
     /**
         Initializes the data using a given char array.
@@ -81,7 +99,7 @@ public:
 
     }
     /// @return Size of the underlying data.
-    static constexpr size_t size() { return priv::max(sizeof ... (index) + 1, Size); }
+    static constexpr size_t size() { return part_size; }
     /**
         Returns the character at given position.
         @param i Index to query the character from.
@@ -94,8 +112,13 @@ public:
     {
         return std::string({_data[index] ...});
     }
+    /// @return this string part as array of bytes
+    constexpr std::array<uint8_t, part_size> to_array() const
+    {
+        return to_array_helper(std::make_index_sequence<part_size>());
+    }
 private:
-    const char _data[priv::max(sizeof ... (index) + 1, Size)] = '\0';
+    const char _data[part_size] = '\0';
 };
 
 namespace priv {
