@@ -223,9 +223,10 @@ public:
     template <size_t count>
     constexpr byte_pack shift_row_left(size_t row_number) const
     {
-        if constexpr (count == 0)
+        if constexpr (count == 0) {
+            (void)row_number;
             return *this;
-        else {
+        } else {
             const auto tmp = this->shift_row_left(row_number);
             return tmp.template shift_row_left<count - 1>(row_number);
         }
