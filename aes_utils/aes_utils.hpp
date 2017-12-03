@@ -8,6 +8,8 @@
 #include <iterator>
 #include <array>
 
+#include "string_partition/array_converter.hpp"
+
 /**
     Namespace contains utilities used in AES encryption algorithm.
 */
@@ -167,6 +169,11 @@ private:
     {
         return all_of(left[index_seq] == right[index_seq] ...);
     }
+    template <size_t output_size, size_t ... index_seq>
+    static constexpr auto to_array_helper(const std::array<uint8_t, size>& data, std::index_sequence<index_seq...>)
+    {
+        return std::array<uint8_t, output_size>{data[index_seq] ...};
+    }
 public:
     template <typename ... Args>
     constexpr byte_pack(Args ... args)
@@ -175,8 +182,21 @@ public:
     constexpr byte_pack(const byte_pack& other) noexcept
         :_data(other._data)
     {}
+    template <typename Byte, size_t input_size, size_t ... index_seq>
+    static constexpr byte_pack from_array(const std::array<Byte, input_size>& input, std::index_sequence<index_seq...>, size_t offset = 0)
+    {
+        return byte_pack(static_cast<uint8_t>(input[index_seq + offset]) ...);
+    }
     constexpr auto operator[](size_t index) const noexcept {
         return _data[index];
+    }
+    constexpr auto to_array() const noexcept {
+        return this->_data;
+    }
+    template <size_t output_size>
+    constexpr auto to_array() const noexcept {
+        static_assert(output_size <= size, "");
+        return to_array_helper<output_size>(this->_data, std::make_index_sequence<output_size>());
     }
     constexpr byte_pack set(size_t index, uint8_t value) const
     {
@@ -365,7 +385,6 @@ private:
         else
             return add_round_key<round>(row_shift(s_box_replace(data)));
     }
-public:
     static constexpr quad_word s_box_replace(const quad_word& data) noexcept
     {
         return substitute_helper(data, std::make_index_sequence<16>());
@@ -385,20 +404,36 @@ public:
     {
         return data.shift_row_left<1>(1).shift_row_left<2>(2).shift_row_left<3>(3);
     }
-
-    constexpr aes_context(const aes_key<key_length>& key)
-        :_key(key)
-    {}
-    //TODO: private
     template <size_t round_number>
     constexpr quad_word add_round_key(const quad_word& data) const
     {
         return data.x_or(this->_key.get_q_word(round_number * 16));
     }
+    template <typename Byte, size_t size, size_t array_size, size_t offset = 0>
+    constexpr auto encrypt_array_helper(const std::array<Byte, array_size>& data) const
+    {
+        if constexpr (size <= 16) {
+            return this->encrypt(quad_word::from_array(data, std::make_index_sequence<size>(), offset)).template to_array<size>();
+        } else {
+            return array_converter::join( this->encrypt(quad_word::from_array(data, std::make_index_sequence<16>(), offset)).to_array(),
+                                          this->encrypt_array_helper<Byte, size - 16, array_size, offset + 16>(data) );
+        }
+    }
+public:
+    constexpr aes_context(const aes_key<key_length>& key)
+        :_key(key)
+    {}
     constexpr quad_word encrypt(const quad_word& data) const
     {
         return encrypt_helper<0, number_of_rounds()>(data);
     }
+    template <typename Byte, size_t array_size>
+    constexpr auto encrypt(const std::array<Byte, array_size>& data) const
+    {
+        return this->encrypt_array_helper<Byte, array_size, array_size, 0>(data);
+    }
+
+
 private:
     const aes_key<key_length> _key;
 };

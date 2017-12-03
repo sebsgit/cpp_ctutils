@@ -4,6 +4,7 @@
 #include "string_partition/string_part.hpp"
 #include "string_partition/string_partition.hpp"
 #include "string_partition/type_list.hpp"
+#include "string_partition/array_converter.hpp"
 #if __cplusplus >= 201703L
 #include "aes_utils/aes_utils.hpp"
 #endif
@@ -158,11 +159,6 @@ static void test_aes_utils() {
                                             0x66, 0x12, 0xba, 0xcd, 0x7d, 0x71, 0x22, 0x6};
       constexpr aes_utils::quad_word test_16_shifted_left{0xf4, 0x59, 0x2, 0x7a, 0x66, 0x81, 0x1, 0,
                                                           0x7d, 0x12, 0xba, 0xcd, 0x51, 0x71, 0x22, 0x6};
-      constexpr aes_utils::quad_word sboxed = aes_utils::aes_context<128>::s_box_replace(test_16);
-      static_assert(sboxed[0] == aes_utils::s_box::value(test_16[0]), "");
-      static_assert(sboxed[1] == aes_utils::s_box::value(test_16[1]), "");
-      static_assert(sboxed[2] == aes_utils::s_box::value(test_16[2]), "");
-      static_assert(sboxed[3] == aes_utils::s_box::value(test_16[3]), "");
       constexpr auto shifted = test_16.shift_row_left(0);
       static_assert(shifted == test_16_shifted_left, "");
   }
@@ -211,19 +207,20 @@ static void test_aes_utils() {
   static_assert(secret != test_16, "");
   static_assert(secret == encrypted_data, "");
 
-  constexpr char string[] = "data to encrypt test test test";
-  using partition_type = decltype(string_partition::make_partition<16>(string));
-  constexpr auto partition = partition_transform::convert<partition_type>(string);
-  std::cout << tuple_utils::get<0>(partition).to_string() << '\n';
-  constexpr auto array = tuple_utils::get<1>(partition).to_array();
-  std::copy(std::begin(array), std::end(array), std::ostream_iterator<char>(std::cout, ""));
-  std::cout << '\n';
-    /*
-    TODO:
-        - const char* -> std::array<uint8_t, sizeof(str)>
-        - encrypt std::array<size> -> std::array<size>
-        - runtime decrypt
-    */
+  {
+  constexpr std::array<unsigned char, 32> plaintext2 = { 0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34,
+                                                         0x32, 0x43, 0xf6, 0xa8, 0x88, 0x5a, 0x30, 0x8d, 0x31, 0x31, 0x98, 0xa2, 0xe0, 0x37, 0x07, 0x34};
+  constexpr unsigned char key2[] = { 0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c };
+  constexpr std::array<unsigned char, 32> expected2 = { 0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32,
+                                          0x39, 0x25, 0x84, 0x1d, 0x02, 0xdc, 0x09, 0xfb, 0xdc, 0x11, 0x85, 0x97, 0x19, 0x6a, 0x0b, 0x32};
+
+  constexpr auto key_test = aes_utils::aes_key<128>::create(key2);
+  constexpr aes_utils::aes_context<128> ctx(key_test.expand());
+  constexpr auto result = ctx.encrypt(plaintext2);
+  static_assert(expected2[0] == result[0], "");
+  static_assert(expected2[17] == result[17], "");
+  }
+
 #endif
 }
 
