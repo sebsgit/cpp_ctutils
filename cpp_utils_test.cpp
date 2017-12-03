@@ -217,8 +217,7 @@ static void test_aes_utils() {
   constexpr auto key_test = aes_utils::aes_key<128>::create(key2);
   constexpr aes_utils::aes_context<128> ctx(key_test.expand());
   constexpr auto result = ctx.encrypt(plaintext2);
-  static_assert(expected2[0] == result[0], "");
-  static_assert(expected2[17] == result[17], "");
+  static_assert(array_converter::is_equal(result, expected2), "");
   }
 
 #endif

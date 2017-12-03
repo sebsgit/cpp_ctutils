@@ -433,7 +433,6 @@ public:
         return this->encrypt_array_helper<Byte, array_size, array_size, 0>(data);
     }
 
-
 private:
     const aes_key<key_length> _key;
 };

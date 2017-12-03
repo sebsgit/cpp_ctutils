@@ -35,6 +35,12 @@ private:
     const std::array<Byte, size0 + size1> _result;
 };
 
+template <typename Byte, size_t size, size_t ... seq>
+constexpr bool equal_helper(const std::array<Byte, size>& left, const std::array<Byte, size>& right, std::index_sequence<seq...>)
+{
+    return ((left[seq] == right[seq]) && ...);
+}
+
 }
 
 template <typename Byte, typename Char, size_t size>
@@ -46,6 +52,14 @@ template <typename Byte, size_t size0, size_t size1>
 constexpr auto join(const std::array<Byte, size0>& left, const std::array<Byte, size1>& right)
 {
     return priv::join_helper<Byte, size0, size1>(left, right, std::make_index_sequence<size0>(), std::make_index_sequence<size1>()).result();
+}
+
+template <typename Byte, size_t size0, size_t size1>
+constexpr auto is_equal(const std::array<Byte, size0>& left, const std::array<Byte, size1>& right)
+{
+    if constexpr (size0 != size1)
+        return false;
+    return priv::equal_helper(left, right, std::make_index_sequence<size0>());
 }
 
 }
