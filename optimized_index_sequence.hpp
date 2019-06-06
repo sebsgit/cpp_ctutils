@@ -4,16 +4,9 @@
 
 namespace sequence_generator {
 
-template <size_t ... seq1>
-class appender {
-public:
-    template <size_t ...seq2>
-    using join_with = std::index_sequence<seq1 ..., seq2 ...>;
-};
-
 template <size_t ... seq, size_t ... seq2>
 constexpr auto make_joined(std::index_sequence<seq...>, std::index_sequence<seq2...>) noexcept {
-    return typename appender<seq...>::template join_with<seq2...>();
+    return std::index_sequence<seq..., seq2...>();
 }
 
 template <size_t offset, size_t ... seq>
