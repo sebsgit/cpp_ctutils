@@ -9,6 +9,7 @@
 #include "aes_utils/aes_utils.hpp"
 #endif
 #include "sha1/sha1_utils.hpp"
+#include "optimized_index_sequence.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -410,6 +411,25 @@ static void test_int_sequence_generator() {
   static_assert(gen::at(17) == 1597, "");
 }
 
+template <size_t ... seq>
+static constexpr auto gen_array(std::index_sequence<seq...>) noexcept
+{
+    return std::array<size_t, sizeof...(seq)>{{seq...}};
+}
+
+static void test_index_sequences()
+{
+    constexpr auto size = 8953;
+    constexpr auto seq = sequence_generator::make_index_sequence<size>();
+    constexpr auto arr = gen_array(seq);
+    static_assert(arr.size() == size, "");
+    for (size_t i=0 ; i<size; ++i)
+        if (i != arr[i]) {
+            std::cout << i << '=' << arr[i];
+            break;
+        }
+}
+
 int main() {
   test_tuple();
   test_int_sequence_generator();
@@ -419,5 +439,6 @@ int main() {
   test_partition_transform();
   test_aes_utils();
   test_sha1_utils();
+  test_index_sequences();
   return 0;
 }
