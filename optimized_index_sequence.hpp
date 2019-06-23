@@ -14,7 +14,7 @@ constexpr auto offset_sequence(std::index_sequence<seq...>) noexcept {
     return std::index_sequence<offset + seq ...>();
 };
 
-template <size_t Start, size_t Length, bool ShortSequence = Length < 8>
+template <size_t Start, size_t Length, bool ShortSequence = (Length < 8)>
 struct generator;
 
 template <size_t Start, size_t Length>

@@ -430,6 +430,8 @@ static void test_index_sequences()
         }
 }
 
+extern void testMultiIterate();
+
 int main() {
   test_tuple();
   test_int_sequence_generator();
@@ -440,5 +442,6 @@ int main() {
   test_aes_utils();
   test_sha1_utils();
   test_index_sequences();
+  testMultiIterate();
   return 0;
 }
