@@ -9,8 +9,8 @@ namespace multi_iter {
 template <typename T>
 concept bool ForwardIterator = requires(T it) {
     {*it};
-    {++it};
-    {it == it}
+    {++it} -> T;
+    {it == it} -> bool
 };
 
 template <typename T>
