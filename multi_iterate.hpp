@@ -4,17 +4,35 @@
 #include <functional>
 #include <exception>
 
-
 namespace multi_iter {
+#ifdef __cpp_concepts
+template <typename T>
+concept bool ForwardIterator = requires(T it) {
+    {*it};
+    {++it};
+    {it == it}
+};
+
+template <typename T>
+concept bool ForwardIterable = ForwardIterator<decltype (std::begin(std::declval<T>()))>
+        && ForwardIterator<decltype (std::end(std::declval<T>()))>;
+
+#define IS_ITERABLE(T) ForwardIterable T
+
+#else
+    //TODO do some enable_if
+#define IS_ITERABLE(T) typename T
+#endif
+
 template <typename ... Args>
 class multi_iterator {
-	template <typename Container>
+	template <IS_ITERABLE(Container)>
 	using start_iterator = decltype (std::begin(std::declval<Container>()));
 
-	template <typename Container>
+	template <IS_ITERABLE(Container)>
 	using end_iterator = decltype (std::end(std::declval<Container>()));
 
-	template <typename Container>
+	template <IS_ITERABLE(Container)>
 	using iterator_pair = std::pair<start_iterator<Container>, end_iterator<Container>>;
 
 public:
@@ -61,10 +79,6 @@ private:
 
 template <>
 class multi_iterator<std::nullptr_t> {
-public:
-    explicit multi_iterator()
-    {
-    }
 };
 
 template <typename ... Args>
@@ -85,7 +99,7 @@ private:
     typename multi_iterator<Args...>::iterators _data;
 };
 
-template <typename C, typename ... Args>
+template <IS_ITERABLE(C), typename ... Args>
 auto get_size(C&& c, Args&& ...) {
     return std::size(c);
 }
@@ -97,7 +111,7 @@ auto get_size(C&& c, Args&& ...) {
 template <typename ... Args>
 auto iterate(Args && ... args) {
     const auto size = get_size(std::forward<Args>(args) ...);
-    if (((std::size(args) != size) || ...)) {
+    if (((get_size(args) != size) || ...)) {
         throw std::runtime_error("cannot multi-iterate containers of different sizes");
     }
     return multi_adapter<Args...>(std::forward<Args>(args)...);
