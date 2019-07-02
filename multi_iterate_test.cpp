@@ -53,3 +53,10 @@ void testMultiIterate() {
     negativeTest();
     basicTest();
 }
+
+#ifdef WITH_MAIN
+int main() {
+	testMultiIterate();
+	return 0;
+}
+#endif

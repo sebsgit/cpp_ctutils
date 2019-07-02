@@ -2,45 +2,31 @@
 
 #include <tuple>
 #include <functional>
-
 #include <exception>
 
-namespace multi_iter {
-template <typename Container>
-class adapter {
-    using start_iterator = decltype (std::begin(std::declval<Container>()));
-    using end_iterator = decltype (std::end(std::declval<Container>()));
-public:
-    template <typename C>
-    explicit adapter(C&& t)
-        : _it(std::begin(std::forward<Container>(t)))
-        , _end(std::end(std::forward<Container>(t)))
-    {
-    }
-    bool is_done() const noexcept {
-        return this->_it == this->_end;
-    }
-    void advance() {
-        ++this->_it;
-    }
-    decltype(auto) deref() {
-        return *this->_it;
-    }
-private:
-    start_iterator _it;
-    const end_iterator _end;
-};
 
+namespace multi_iter {
 template <typename ... Args>
 class multi_iterator {
+	template <typename Container>
+	using start_iterator = decltype (std::begin(std::declval<Container>()));
+
+	template <typename Container>
+	using end_iterator = decltype (std::end(std::declval<Container>()));
+
+	template <typename Container>
+	using iterator_pair = std::pair<start_iterator<Container>, end_iterator<Container>>;
+
 public:
+	using iterators = std::tuple<iterator_pair<Args>...>;
+
     template <typename T>
     explicit multi_iterator(T&& t)
         :_data{std::forward<T>(t)}
     {
     }
     bool is_done() const noexcept {
-        return std::get<0>(this->_data).is_done();
+        return std::get<0>(this->_data).first == std::get<0>(this->_data).second;
     }
 
     auto& operator++() {
@@ -57,20 +43,20 @@ public:
 private:
     template <size_t ... index>
     void increment(std::index_sequence<index...>) {
-        std::initializer_list<int>{(std::get<index>(this->_data).advance(), 0) ...};
+        std::initializer_list<int>{(++std::get<index>(this->_data).first, 0) ...};
     }
 
     template <size_t ... index>
     auto deref(std::index_sequence<index...>) {
-        return std::make_tuple(std::ref(std::get<index>(this->_data).deref()) ...);
+        return std::make_tuple(std::ref(*std::get<index>(this->_data).first) ...);
     }
     template <size_t ... index>
     auto deref(std::index_sequence<index...>) const {
-        return std::make_tuple(std::cref(std::get<index>(this->_data).deref()) ...);
+        return std::make_tuple(std::cref(*std::get<index>(this->_data).first) ...);
     }
 
 private:
-    std::tuple<adapter<Args>...> _data;
+    iterators _data;
 };
 
 template <>
@@ -86,7 +72,7 @@ class multi_adapter {
 public:
     template <typename ... T>
     explicit multi_adapter(T&& ... t)
-        :_data{std::forward<T>(t) ...}
+        :_data{{std::begin(t), std::end(t)} ...}
     {
     }
     auto begin() {
@@ -96,7 +82,7 @@ public:
         return multi_iterator<std::nullptr_t>();
     }
 private:
-    std::tuple<adapter<Args>...> _data;
+    typename multi_iterator<Args...>::iterators _data;
 };
 
 template <typename C, typename ... Args>
@@ -107,7 +93,6 @@ auto get_size(C&& c, Args&& ...) {
 /**
     TODO:
         - allow different container sizes with user-defined fallback values
-        - refactor to not use the adapter
 */
 template <typename ... Args>
 auto iterate(Args && ... args) {
