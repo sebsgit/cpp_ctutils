@@ -28,6 +28,19 @@ static void basicTest() {
     TEST_END;
 }
 
+static void testConstContainers()
+{
+	const std::vector<float> c_vec{1.0f, 2.0f, 3.0f};
+	std::vector<float> vec{1.0f, 2.0f, 3.0f};
+
+	auto adapter = multi_iter::iterate(vec, c_vec);
+	auto [a, b] = *std::begin(adapter);
+
+	// can assign only to the first item
+	static_assert(std::is_assignable<decltype(a), float>::value);
+	static_assert(!std::is_assignable<decltype(b), float>::value);
+}
+
 static void negativeTest() {
     TEST_START;
     std::array<int, 4> arr1;
@@ -38,7 +51,6 @@ static void negativeTest() {
 
 /**
 TODO:
-    - test const containers
     - test non-copyable classes
 
 */
