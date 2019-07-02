@@ -23,10 +23,10 @@ static void basicTest() {
     REQ(result[0] == 5.0f);
     REQ(result[1] == 7.0f);
     REQ(result[2] == 9.0f);
-    for (auto it : multi_iter::iterate(arr, vec, result)) {
-        std::get<0>(it) = 0;
-        std::get<1>(it) = 0;
-        std::get<2>(it) = 0;
+    for (auto [a, b, c] : multi_iter::iterate(arr, vec, result)) {
+        a = 0;
+        b = 0;
+        c = 0;
     }
     REQ(std::accumulate(result.begin(), result.end(), 0) == 0.0f);
     REQ(std::accumulate(vec.begin(), vec.end(), 0) == 0);
