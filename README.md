@@ -13,3 +13,7 @@ Compile time math library.  For now only random generators and distributions.
 ## sha1
 
 Compile time SHA-1 hash generator.
+
+## ieee754
+
+Utilities for generating IEEE 754 representation of a float number at compile time.
