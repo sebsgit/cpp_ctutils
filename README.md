@@ -17,3 +17,7 @@ Compile time SHA-1 hash generator.
 ## ieee754
 
 Utilities for generating IEEE 754 representation of a float number at compile time.
+
+## JSON
+
+Compile time JSON parser.
