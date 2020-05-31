@@ -163,6 +163,10 @@ static void testObjectParse()
     using TokensLeft = Parser::NextTokens;
     static_assert(TokensLeft::type == TokenType::Invalid);
     static_assert(std::is_same_v<TokensLeft::Token, std::false_type>);
+
+    constexpr auto json_obj { JSONDeclarator<Result>::createObject() };
+    static_assert (json_obj.value() == 42, "");
+    std::cout << json_obj.name().toString() << ':' << json_obj.value() << '\n';
 }
 
 static constexpr const char tokenTest_ObjectDef_simple_two[] = "{ \"age\" : 42, \"name\" : \"Joe\" }";

@@ -5,6 +5,22 @@
 
 namespace ctjson
 {
+    class StringView
+    {
+    public:
+        constexpr explicit StringView(const char *src, const size_t size) noexcept :
+            ptr_ {src},
+            size_ {size}
+        {}
+        std::string toString() const
+        {
+            return std::string(ptr_, size_);
+        }
+    private:
+        const char * ptr_;
+        const size_t size_;
+    };
+
 	template <const char* string, size_t start, size_t length, bool is_empty = (length == 0)>
 	class String;
 
@@ -16,6 +32,11 @@ namespace ctjson
 		using Trimmed = String<string, start, length, true>;
 		template <size_t from, size_t to>
 		using Substring = Trimmed;
+
+        static constexpr StringView asStringView() noexcept
+        {
+            return StringView(nullptr, 0);
+        }
 
 		template <size_t N>
 		static constexpr bool equals(const char(&other)[N]) noexcept
@@ -81,6 +102,11 @@ namespace ctjson
 
 		template <size_t from, size_t to>
 		using Substring = String<string, start + from, to - from>;
+
+        static constexpr StringView asStringView() noexcept
+        {
+            return StringView(string + start, length);
+        }
 
 		static constexpr size_t size() noexcept
 		{

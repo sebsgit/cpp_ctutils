@@ -50,4 +50,16 @@ namespace ctjson
 		template <size_t idx>
 		using At = std::conditional_t<idx == 0, T, typename next::template At<idx - 1>>;
 	};
+
+    template <typename ... Args>
+    struct IsTypeList
+    {
+        static constexpr bool value {false};
+    };
+
+    template <typename ... Args>
+    struct IsTypeList<TypeList<Args ...>>
+    {
+        static constexpr bool value {true};
+    };
 } // namespace ctjson
