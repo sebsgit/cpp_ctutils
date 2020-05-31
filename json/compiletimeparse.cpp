@@ -125,7 +125,6 @@ static void testArrayParse_SyntaxError_0()
     using TokenList = JSONTokenizer<Input>;
 
     using ParseArrayImpl = ParseJSONArray<TokenList>;
-    using Result = ParseArrayImpl::Result;
 
     static_assert(!ParseArrayImpl::success);
     using TokensLeft = ParseArrayImpl::NextTokens;
@@ -308,6 +307,7 @@ int main()
     testObjectParse();
     testObjectParseTwo();
     testObjectParseValueArray();
+    testArrayParse_SyntaxError_0();
 	testTokenizeAddress();
 	testParseAddress();
 

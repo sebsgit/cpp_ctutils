@@ -227,7 +227,7 @@ namespace ctjson
 
 	template <typename ResultList, typename TokenList>
 	class ParseOneJSONArrayValue<ResultList, TokenList, TokenType::ArrayOpen> {
-		using ParserImpl = typename ParseOneJSONArrayValue<ResultList, typename TokenList::Next, JSONTokenSpecs<typename TokenList::Next>::type>;
+		using ParserImpl = ParseOneJSONArrayValue<ResultList, typename TokenList::Next, JSONTokenSpecs<typename TokenList::Next>::type>;
 
 	public:
 		using Result = typename ParserImpl::Result;
