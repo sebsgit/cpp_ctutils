@@ -221,6 +221,12 @@ static void testObjectParseValueArray()
     static_assert(Values::At<0>::String::equals("1"));
     static_assert(Values::At<1>::String::equals("2"));
     static_assert(Values::At<2>::String::equals("3"));
+
+    constexpr auto json_obj { JSONDeclarator<Result>::createObject() };
+    constexpr std::array<int32_t, 3> values { json_obj.value() };
+    static_assert (values[0] == 1);
+    static_assert (values[1] == 2);
+    static_assert (values[2] == 3);
 }
 
 static void testTypeList()

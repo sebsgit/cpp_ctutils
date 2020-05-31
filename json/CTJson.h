@@ -4,6 +4,7 @@
 #include "TypeListUtils.h"
 #include <string>
 #include <type_traits>
+#include <array>
 
 ///
 /// Utilities for compile-time parsing of JSON
@@ -192,20 +193,20 @@ namespace ctjson
     {
     public:
         using ObjectType = StringView;
-        static constexpr StringView createObject() noexcept
+        static constexpr ObjectType createObject() noexcept
         {
             return Name::asStringView();
         }
     };
 
-    template <typename Name>
-    class JSONObjectDeclarator<Name, TokenType::Number>
+    template <typename Token>
+    class JSONObjectDeclarator<Token, TokenType::Number>
     {
     public:
         using ObjectType = int32_t;
-        static constexpr int32_t createObject() noexcept
+        static constexpr ObjectType createObject() noexcept
         {
-            return Name::toInt();
+            return Token::toInt();
         }
     };
 
@@ -235,10 +236,11 @@ namespace ctjson
     class JSONNameValueObjectDeclarator<Name, TypeList<First, Args...>>
     {
     public:
-        using ObjectType = typename First::ObjectType;
+        using ArrayType = std::array<typename First::ObjectType, 1 + sizeof...(Args)>;
+        using ObjectType = JSONObject<ArrayType>;
         static constexpr ObjectType createObject() noexcept
         {
-            return First::createObject();
+            return ObjectType{ Name::asStringView(), ArrayType({First::createObject(), Args::createObject() ...}) };
         }
     };
 
