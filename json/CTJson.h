@@ -142,6 +142,17 @@ namespace ctjson
         static constexpr auto type = TokenType::Invalid;
     };
 
+    template <typename Current>
+    class JSONObjectLocator
+    {
+    public:
+        template <size_t N>
+        static constexpr bool contains(const Current &sv, const char (&name)[N]) noexcept
+        {
+            return false;
+        }
+    };
+
     template <typename Data>
     class JSONObject
     {
@@ -158,6 +169,12 @@ namespace ctjson
         constexpr const Data &value() const noexcept
         {
             return value_;
+        }
+
+        template <size_t N>
+        constexpr bool contains(const char (&name)[N]) const noexcept
+        {
+            return name_.equals(name) || JSONObjectLocator<Data>::contains(value_, name);
         }
     private:
         const StringView name_;
@@ -180,9 +197,37 @@ namespace ctjson
         {
             return next_;
         }
+
+        template <size_t N>
+        constexpr bool contains(const char (&name)[N]) const noexcept
+        {
+            return JSONObjectLocator<Data>::contains(data_, name) || JSONObjectLocator<Next>::contains(next_, name);
+        }
     private:
         const Data data_;
         const Next next_;
+    };
+
+    template <typename T>
+    class JSONObjectLocator<JSONObject<T>>
+    {
+    public:
+        template <size_t N>
+        static constexpr bool contains(const JSONObject<T> &obj, const char (&name)[N]) noexcept
+        {
+            return obj.name().equals(name) || obj.contains(name);
+        }
+    };
+
+    template <typename T, typename U>
+    class JSONObjectLocator<JSONDict<T, U>>
+    {
+    public:
+        template <size_t N>
+        static constexpr bool contains(const JSONDict<T, U> &obj, const char (&name)[N]) noexcept
+        {
+            return obj.contains(name);
+        }
     };
 
     template <typename Name, TokenType type>
@@ -283,7 +328,7 @@ namespace ctjson
     {
         using Decl = JSONDeclarator<TypeList<Args...>>;
     public:
-        using ObjectType = JSONDict<StringView, typename Decl::ObjectType>;
+        using ObjectType = JSONObject<typename Decl::ObjectType>;
         static constexpr ObjectType createObject() noexcept
         {
             return ObjectType { Name::asStringView(), Decl::createObject() };

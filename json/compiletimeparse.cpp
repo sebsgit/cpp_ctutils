@@ -314,19 +314,24 @@ static void testParseAddress()
 	static_assert(Result::type::name::equals("\"address\""));
 
     constexpr auto json_obj {JSONDeclarator<Result>::createObject()};
-    static_assert (json_obj.node().equals("\"address\""));
 
-    static_assert (json_obj.next().node().name().equals("\"streetAddress\""));
-    static_assert (json_obj.next().node().value().equals("\"21 2nd Street\""));
+    static_assert (json_obj.contains("\"address\""));
+    static_assert (json_obj.contains("\"streetAddress\""));
+    static_assert (!json_obj.contains("\"no such node\""));
 
-    static_assert (json_obj.next().next().node().name().equals("\"city\""));
-    static_assert (json_obj.next().next().node().value().equals("\"New York\""));
+    static_assert (json_obj.name().equals("\"address\""));
 
-    static_assert (json_obj.next().next().next().node().name().equals("\"state\""));
-    static_assert (json_obj.next().next().next().node().value() == 76);
+    static_assert (json_obj.value().node().name().equals("\"streetAddress\""));
+    static_assert (json_obj.value().node().value().equals("\"21 2nd Street\""));
 
-    static_assert (json_obj.next().next().next().next().name().equals("\"postalCode\""));
-    static_assert (json_obj.next().next().next().next().value().equals("\"10021-3100\""));
+    static_assert (json_obj.value().next().node().name().equals("\"city\""));
+    static_assert (json_obj.value().next().node().value().equals("\"New York\""));
+
+    static_assert (json_obj.value().next().next().node().name().equals("\"state\""));
+    static_assert (json_obj.value().next().next().node().value() == 76);
+
+    static_assert (json_obj.value().next().next().next().name().equals("\"postalCode\""));
+    static_assert (json_obj.value().next().next().next().value().equals("\"10021-3100\""));
 }
 
 int main()
