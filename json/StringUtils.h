@@ -8,6 +8,8 @@ namespace ctjson
     class StringView
     {
     public:
+        constexpr StringView() noexcept = default;
+
         constexpr explicit StringView(const char *src, const size_t size) noexcept :
             ptr_ {src},
             size_ {size}
@@ -30,8 +32,8 @@ namespace ctjson
             return std::string(ptr_, size_);
         }
     private:
-        const char * ptr_;
-        const size_t size_;
+        const char * ptr_ {nullptr};
+        const size_t size_ {0};
     };
 
 	template <const char* string, size_t start, size_t length, bool is_empty = (length == 0)>

@@ -332,6 +332,9 @@ static void testParseAddress()
 
     static_assert (json_obj.value().next().next().next().name().equals("\"postalCode\""));
     static_assert (json_obj.value().next().next().next().value().equals("\"10021-3100\""));
+
+    static_assert (json_obj.get<int32_t>("\"state\"") == 76);
+    static_assert (json_obj.get<StringView>("\"city\"").value().equals("\"New York\""));
 }
 
 int main()

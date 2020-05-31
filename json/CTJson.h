@@ -142,6 +142,39 @@ namespace ctjson
         static constexpr auto type = TokenType::Invalid;
     };
 
+    template <typename T>
+    class JSONValueWrapper
+    {
+    public:
+        constexpr explicit JSONValueWrapper() noexcept
+        {
+
+        }
+        constexpr explicit JSONValueWrapper(const T &val) noexcept
+            : value_ {val}
+        {
+
+        }
+
+        //TODO allow some conversions
+        template <typename U>
+        constexpr explicit JSONValueWrapper(const U &val) noexcept
+        {
+
+        }
+
+        constexpr operator const T &() const noexcept
+        {
+            return value_;
+        }
+        constexpr const T &value() const noexcept
+        {
+            return value_;
+        }
+    private:
+        const T value_ = {};
+    };
+
     template <typename Current>
     class JSONObjectLocator
     {
@@ -150,6 +183,11 @@ namespace ctjson
         static constexpr bool contains(const Current &sv, const char (&name)[N]) noexcept
         {
             return false;
+        }
+        template <typename V, size_t N>
+        static constexpr JSONValueWrapper<V> get(const Current &obj, const char (&name)[N]) noexcept
+        {
+            return JSONValueWrapper<V>();
         }
     };
 
@@ -176,6 +214,13 @@ namespace ctjson
         {
             return name_.equals(name) || JSONObjectLocator<Data>::contains(value_, name);
         }
+
+        template <typename T, size_t N>
+        constexpr JSONValueWrapper<T> get(const char (&name)[N]) const noexcept
+        {
+            return name_.equals(name) ? JSONValueWrapper<T>(value_) : JSONObjectLocator<Data>::template get<T>(value_, name);
+        }
+
     private:
         const StringView name_;
         const Data value_;
@@ -203,6 +248,14 @@ namespace ctjson
         {
             return JSONObjectLocator<Data>::contains(data_, name) || JSONObjectLocator<Next>::contains(next_, name);
         }
+
+        template <typename T, size_t N>
+        constexpr JSONValueWrapper<T> get(const char (&name)[N]) const noexcept
+        {
+            return JSONObjectLocator<Data>::contains(data_, name) ?
+                        JSONObjectLocator<Data>::template get<T>(data_, name) :
+                        JSONObjectLocator<Next>::template get<T>(next_, name);
+        }
     private:
         const Data data_;
         const Next next_;
@@ -217,6 +270,12 @@ namespace ctjson
         {
             return obj.name().equals(name) || obj.contains(name);
         }
+
+        template <typename V, size_t N>
+        static constexpr JSONValueWrapper<V> get(const JSONObject<T> &obj, const char (&name)[N]) noexcept
+        {
+            return obj.template get<V>(name);
+        }
     };
 
     template <typename T, typename U>
@@ -227,6 +286,12 @@ namespace ctjson
         static constexpr bool contains(const JSONDict<T, U> &obj, const char (&name)[N]) noexcept
         {
             return obj.contains(name);
+        }
+
+        template <typename V, size_t N>
+        static constexpr JSONValueWrapper<V> get(const JSONDict<T, U> &obj, const char (&name)[N]) noexcept
+        {
+            return obj.template get<V>(name);
         }
     };
 
