@@ -167,6 +167,21 @@ namespace ctjson
     class JSONDict
     {
     public:
+        constexpr explicit JSONDict(const Data &data, const Next &next) noexcept :
+            data_ {data},
+            next_ {next}
+        {}
+        constexpr const Data &node() const noexcept
+        {
+            return data_;
+        }
+        constexpr const Next &next() const noexcept
+        {
+            return next_;
+        }
+    private:
+        const Data data_;
+        const Next next_;
     };
 
     template <typename Name, TokenType type>
@@ -238,14 +253,26 @@ namespace ctjson
         }
     };
 
-    template <typename First, typename ... Args>
-    class JSONDeclarator<TypeList<First, Args...>>
+    template <typename First>
+    class JSONDeclarator<TypeList<First>>
     {
     public:
         using ObjectType = typename First::ObjectType;
         static constexpr ObjectType createObject() noexcept
         {
             return First::createObject();
+        }
+    };
+
+    template <typename First, typename ... Args>
+    class JSONDeclarator<TypeList<First, Args...>>
+    {
+        using DeclRest = JSONDeclarator<TypeList<Args...>>;
+    public:
+        using ObjectType = JSONDict<typename First::ObjectType, typename DeclRest::ObjectType>;
+        static constexpr ObjectType createObject() noexcept
+        {
+            return ObjectType{First::createObject(), DeclRest::createObject()};
         }
     };
 

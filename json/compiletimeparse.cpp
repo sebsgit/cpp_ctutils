@@ -192,6 +192,14 @@ static void testObjectParseTwo()
     using TokensLeft = Parser::NextTokens;
     static_assert(TokensLeft::type == TokenType::Invalid);
     static_assert(std::is_same_v<TokensLeft::Token, std::false_type>);
+
+    constexpr auto json_obj { JSONDeclarator<Result>::createObject() };
+    static_assert (json_obj.node().value() == 42);
+    static_assert (std::is_same_v<std::decay_t<decltype(json_obj.next().value())>, StringView>);
+    std::cout << "multi-value dict: \n";
+    std::cout << json_obj.node().name().toString() << ':' << json_obj.node().value() << '\n';
+    std::cout << json_obj.next().name().toString() << ':' << json_obj.next().value().toString() << '\n';
+    std::cout << "---\n";
 }
 
 static constexpr const char tokenTest_ObjectDef_array[] = "{ \"values\" : [1, 2, 3] }";
