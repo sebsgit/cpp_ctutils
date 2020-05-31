@@ -221,7 +221,7 @@ namespace ctjson
         }
     };
 
-    template <typename Name, typename Value>
+    template <TokenType type, typename Name, typename Value>
     class JSONNameValueObjectDeclarator
     {
     public:
@@ -233,7 +233,7 @@ namespace ctjson
     };
 
     template <typename Name, typename First, typename ... Args>
-    class JSONNameValueObjectDeclarator<Name, TypeList<First, Args...>>
+    class JSONNameValueObjectDeclarator<TokenType::ArrayOpen, Name, TypeList<First, Args...>>
     {
     public:
         using ArrayType = std::array<typename First::ObjectType, 1 + sizeof...(Args)>;
@@ -278,12 +278,24 @@ namespace ctjson
         }
     };
 
-    template <typename Name, typename Value>
+    template <typename Name, typename ... Args>
+    class JSONNameValueObjectDeclarator<TokenType::DictOpen, Name, TypeList<Args...>>
+    {
+        using Decl = JSONDeclarator<TypeList<Args...>>;
+    public:
+        using ObjectType = JSONDict<StringView, typename Decl::ObjectType>;
+        static constexpr ObjectType createObject() noexcept
+        {
+            return ObjectType { Name::asStringView(), Decl::createObject() };
+        }
+    };
+
+    template <typename Name, typename Value, TokenType tokenType>
     struct JSONNameValue {
         using name = Name;
         using value = Value;
 
-        using Declarator = JSONNameValueObjectDeclarator<Name, Value>;
+        using Declarator = JSONNameValueObjectDeclarator<tokenType, Name, Value>;
 
         using ObjectType = typename Declarator::ObjectType;
         static constexpr ObjectType createObject() noexcept
@@ -495,7 +507,7 @@ namespace ctjson
         using Value = typename ParseValue::Result;
 
         constexpr static bool success{ ParseName::success && colon_ok && ParseValue::success };
-        using Result = JSONNameValue<Name, Value>;
+        using Result = JSONNameValue<Name, Value, JSONTokenSpecs<typename MoreTokens::Next>::type>;
         using NextTokens = std::conditional_t<success, typename ParseValue::NextTokens, TokenList>;
     };
 

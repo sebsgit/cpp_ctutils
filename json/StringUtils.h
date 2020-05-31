@@ -12,6 +12,19 @@ namespace ctjson
             ptr_ {src},
             size_ {size}
         {}
+        template <size_t N>
+        constexpr bool equals(const char (&other)[N]) const noexcept
+        {
+            if (size_ != N - 1) {
+                return false;
+            }
+            for (size_t i = 0; i < N - 1; ++i) {
+                if (other[i] != ptr_[i]) {
+                    return false;
+                }
+            }
+            return true;
+        }
         std::string toString() const
         {
             return std::string(ptr_, size_);
